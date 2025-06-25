@@ -24,5 +24,6 @@ public class UserEntry {
     private LocalDate date = LocalDate.now();
 
     @DBRef
-    private List<BookEntry> books = new ArrayList<>();  // 👈 All books created by this user
+    private List<BookEntry> books = new ArrayList<>();
+    private List<String> roles = new ArrayList<>();
 }

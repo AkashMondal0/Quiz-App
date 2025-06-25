@@ -6,6 +6,7 @@ import com.skysolo.server.repository.BookRepository;
 import com.skysolo.server.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,20 +29,26 @@ public class BookService {
         return bookRepository.findById(id);
     }
 
+    @Transactional
     public BookEntry createBook(BookEntry book, String ownerId) {
-        // Fetch user by ID
-        UserEntry user = userRepository.findById(ownerId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        book.setDate(LocalDate.now());
+        try{
+            // Fetch user by ID
+            UserEntry user = userRepository.findById(ownerId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            book.setDate(LocalDate.now());
 
-        // Save book
-        BookEntry savedBook = bookRepository.save(book);
+            // Save book
+            BookEntry savedBook = bookRepository.save(book);
 
-        // Add book to user's book list
-        user.getBooks().add(savedBook);
-        userRepository.save(user);
+            // Add book to user's book list
+            user.getBooks().add(savedBook);
+            userRepository.save(user);
 
-        return savedBook;
+            return savedBook;
+        } catch (Exception e) {
+            System.out.println("Error creating book: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     public BookEntry updateBook(String id, BookEntry book) {
