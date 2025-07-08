@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.skysolo</groupId>
-	<artifactId>MagicKitchen</artifactId>
+	<artifactId>FunQuiz</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>MagicKitchen</name>
+	<name>FunQuiz</name>
 	<description>Magic Kitchen Project for Spring Boot</description>
 	<url/>
 	<licenses>
