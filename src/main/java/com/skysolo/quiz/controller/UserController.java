@@ -9,7 +9,6 @@ public class UserController {
 
     @GetMapping
     public String getUsers() {
-
-        return "List of users";
+        return "Users fetched successfully";
     }
 }

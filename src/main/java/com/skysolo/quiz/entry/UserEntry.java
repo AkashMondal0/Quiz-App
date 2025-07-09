@@ -22,6 +22,7 @@ public class UserEntry implements UserDetails {
     private String username;
 
     private String name;
+    private String url;
 
     @Indexed(unique = true)
     private String email;
