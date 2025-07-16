@@ -1,9 +1,9 @@
 package com.skysolo.quiz.service;
 
 import com.skysolo.quiz.entry.EventEntry;
-import com.skysolo.quiz.entry.UserEntry;
-import com.skysolo.quiz.exception.ConflictException;
+import com.skysolo.quiz.exception.BadRequestException;
 import com.skysolo.quiz.exception.NotFoundException;
+import com.skysolo.quiz.payload.auth.UserSummary;
 import com.skysolo.quiz.payload.event.*;
 import com.skysolo.quiz.repository.EventRepository;
 import com.skysolo.quiz.repository.UserRepository;
@@ -30,80 +30,77 @@ public class EventService {
     @Autowired
     private AuthService authService;
 
-    public EventResponse create(EventCreateRequest req) {
-
+    private String getUserId() {
         String userId = authService.getSession().getBody().getId();
 
-        UserEntry creator = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (userId == null || userId.isEmpty()) {
+            throw new NotFoundException("User not found");
+        }
 
-        EventEntry saved = eventRepository.save(EventEntry.builder()
-                .tag(req.getTag())
-                .organizationId(req.getOrganizationId())
-                .title(req.getTitle())
-                .description(req.getDescription())
-                .startDate(req.getStartDate())
-                .endDate(req.getEndDate())
-                .createdAt(Instant.now().toString())
-                .updatedAt(Instant.now().toString())
-                .sendEmailFeatureEnabled(req.isSendEmailFeatureEnabled())
-                .isPublic(req.isPublic())
-                .quizCount(0)
-                .participantsCount(0)
-                .user(creator)
-                .adminUsers(new ArrayList<>())
-                .allowUsers(new ArrayList<>())
-                .participants(new ArrayList<>())
-                .quiz(new ArrayList<>())
-                .build());
-
-        /* 3 ─ map to response */
-        return EventResponse.builder()
-                .id(saved.getId())
-                .tag(saved.getTag())
-                .organizationId(saved.getOrganizationId())
-                .title(saved.getTitle())
-                .description(saved.getDescription())
-                .startDate(saved.getStartDate())
-                .endDate(saved.getEndDate())
-                .createdAt(saved.getCreatedAt())
-                .updatedAt(saved.getUpdatedAt())
-                .sendEmailFeatureEnabled(saved.isSendEmailFeatureEnabled())
-                .isPublic(saved.isPublic())
-                .quizCount(saved.getQuizCount())
-                .participantsCount(saved.getParticipantsCount())
-                .build();
+        return userId;
     }
 
+    // create an event
+    public EventResponse create(EventCreateRequest req) {
+        try{
+            String userId = getUserId();
+            UserSummary creator = userRepository.findSummaryById(userId)
+                    .orElseThrow(() -> new NotFoundException("User not found"));
+
+            EventEntry saved = eventRepository.save(EventEntry.builder()
+                    .tag(req.getTag())
+                    .organizationId(req.getOrganizationId())
+                    .title(req.getTitle())
+                    .description(req.getDescription())
+                    .startDate(req.getStartDate())
+                    .endDate(req.getEndDate())
+                    .createdAt(Instant.now().toString())
+                    .updatedAt(Instant.now().toString())
+                    .sendEmailFeatureEnabled(req.isSendEmailFeatureEnabled())
+                    .isPublic(req.isPublic())
+                    .quizCount(0)
+                    .participantsCount(0)
+                    .user(creator)
+                    .adminUsers(new ArrayList<>())
+                    .allowUsers(new ArrayList<>())
+                    .participants(new ArrayList<>())
+                    .quiz(new ArrayList<>())
+                    .build());
+
+            /* 3 ─ map to response */
+            return EventResponse.builder()
+                    .id(saved.getId())
+                    .tag(saved.getTag())
+                    .organizationId(saved.getOrganizationId())
+                    .title(saved.getTitle())
+                    .description(saved.getDescription())
+                    .startDate(saved.getStartDate())
+                    .endDate(saved.getEndDate())
+                    .createdAt(saved.getCreatedAt())
+                    .updatedAt(saved.getUpdatedAt())
+                    .sendEmailFeatureEnabled(saved.isSendEmailFeatureEnabled())
+                    .isPublic(saved.isPublic())
+                    .quizCount(saved.getQuizCount())
+                    .participantsCount(saved.getParticipantsCount())
+                    .build();
+        } catch (Exception e) {
+            throw new BadRequestException("Event creation failed: " + e.getMessage());
+        }
+    }
+
+    // get all events
     public EventWithRelations getEventById(String id) {
-        return eventRepository.findById(id)
-                .map(DtoMappers::toEventWithRelations)
-                .orElseThrow(() -> new NotFoundException("Event not found with id: " + id));
+        try {
+            return eventRepository.findById(id)
+                    .map(DtoMappers::toEventWithRelations)
+                    .orElseThrow(() -> new NotFoundException("Event not found with id: " + id));
+        } catch (Exception e) {
+            throw new NotFoundException("Event not found: " + e.getMessage());
+        }
     }
 
-    public EventWithRelations addUserToAllowList(String eventId, String identifier) {
-
-        EventEntry event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event " + eventId + " not found"));
-
-        // 1. Resolve the user by id first, then email
-        UserEntry user = userRepository.findById(identifier)
-                .or(() -> userRepository.findByEmail(identifier))
-                .orElseThrow(() -> new NotFoundException("User " + identifier + " not found"));
-
-        // 2. Skip if already present
-        boolean already = event.getAllowUsers().stream()
-                .anyMatch(u -> u.getId().equals(user.getId()));
-        if (already) throw new ConflictException("User already allowed");
-
-        // 3. Add DBRef
-        event.getAllowUsers().add(user);
-        eventRepository.save(event);
-
-        return DtoMappers.toEventWithRelations(event);
-    }
-
-    @Transactional   // atomic: all or nothing
+    // add user to allow list
+    @Transactional
     public BulkAllowResponse bulkAddAllowUsers(String eventId, List<String> emails) {
         try{
 
@@ -116,10 +113,10 @@ public class EventService {
                     .collect(Collectors.toSet());
 
             // fetch all users in one query
-            List<UserEntry> users = userRepository.findAllByEmailIn(targets);
+            List<UserSummary> users = userRepository.findAllByEmailIn(targets);
 
             // index by email for quick lookup
-            Map<String, UserEntry> emailToUser = users.stream()
+            Map<String, UserSummary> emailToUser = users.stream()
                     .collect(Collectors.toMap(u -> u.getEmail().toLowerCase(), u -> u));
 
             List<String> added   = new ArrayList<>();
@@ -127,7 +124,7 @@ public class EventService {
             List<String> missing = new ArrayList<>();
 
             for (String email : targets) {
-                UserEntry u = emailToUser.get(email);
+                UserSummary u = emailToUser.get(email);
                 if (u == null) {
                     missing.add(email);
                     continue;
@@ -148,8 +145,77 @@ public class EventService {
                     added, skipped, missing,
                     DtoMappers.toEventWithRelations(event));
         } catch (Exception e) {
-            throw new RuntimeException("Bulk allow failed: " + e.getMessage(), e);
-     }
+            throw new BadRequestException("Bulk allow failed: " + e.getMessage());
+      }
+    }
+
+    // remove user from allow list
+    @Transactional
+    public BulkRemoveResponse bulkRemoveAllowUsers(String eventId, List<String> emails) {
+
+        EventEntry event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event " + eventId + " not found"));
+
+        Set<String> normalizedEmails = emails.stream()
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+
+        List<UserSummary> foundUsers = userRepository.findAllByEmailIn(normalizedEmails);
+
+        Map<String, UserSummary> emailToUser = foundUsers.stream()
+                .collect(Collectors.toMap(
+                        u -> u.getEmail().toLowerCase(),
+                        u -> u
+                ));
+
+        List<String> removed = new ArrayList<>();
+        List<String> notInList = new ArrayList<>();
+        List<String> notFound = new ArrayList<>();
+
+        for (String email : normalizedEmails) {
+            UserSummary user = emailToUser.get(email);
+
+            if (user == null) {
+                notFound.add(email);
+                continue;
+            }
+
+            boolean wasInList = event.getAllowUsers().removeIf(u -> u.getId().equals(user.getId()));
+
+            if (wasInList) {
+                removed.add(email);
+            } else {
+                notInList.add(email);
+            }
+        }
+
+        eventRepository.save(event);
+
+        return new BulkRemoveResponse(
+                removed,
+                notFound,
+                notInList,
+                DtoMappers.toEventWithRelations(event)
+        );
+    }
+
+    // get events by author
+    public List<EventMapper.EventSummary> getEventsByAuthor(
+            // params limit, offset, sortBy, sortOrder
+//            @RequestParam(required = false) Integer limit,
+//            @RequestParam(required = false) Integer offset,
+//            @RequestParam(required = false) String sortBy,
+//            @RequestParam(required = false) String sortOrder
+    ) {
+        String userId = getUserId();
+        if (userId == null || userId.isEmpty()) {
+            throw new NotFoundException("User not found");
+        }
+        List<EventEntry> events = eventRepository.findByUserId(userId);
+
+        return events.stream()
+                .map(EventMapper::toEventSummary)
+                .collect(Collectors.toList());
     }
 }
 

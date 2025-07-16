@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-public class ConfigCache {
+public class CacheConfig {
     @Autowired
     private ConfigRepository configRepository;
 

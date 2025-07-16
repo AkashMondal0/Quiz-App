@@ -1,6 +1,9 @@
 package com.skysolo.quiz.service;
 
 import com.skysolo.quiz.entry.UserEntry;
+import com.skysolo.quiz.exception.BadRequestException;
+import com.skysolo.quiz.exception.ConflictException;
+import com.skysolo.quiz.exception.NotFoundException;
 import com.skysolo.quiz.payload.cache.CachedUserDTO;
 import com.skysolo.quiz.payload.auth.LoginRequest;
 import com.skysolo.quiz.payload.auth.RegisterRequest;
@@ -56,7 +59,7 @@ public class AuthService {
     public ResponseEntity<LoginResponse> register(@RequestBody RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            return buildErrorResponse("User already exists", HttpStatus.BAD_REQUEST);
+            throw new ConflictException("Email already exists");
         }
 
         try {
@@ -88,7 +91,7 @@ public class AuthService {
             return authenticateAndGenerateToken(user.getEmail(), rawPassword, "Registration successful");
 
         } catch (Exception e) {
-            return buildErrorResponse("Registration failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new BadRequestException("Registration failed: " + e.getMessage());
         }
     }
 
@@ -111,9 +114,9 @@ public class AuthService {
             return authenticateAndGenerateToken(request.getEmail(), request.getPassword(), "Login successful");
 
         } catch (BadCredentialsException e) {
-            return buildErrorResponse("Invalid email or password", HttpStatus.UNAUTHORIZED);
+            throw new BadRequestException("Invalid email or password");
         } catch (Exception e) {
-            return buildErrorResponse("Login failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new BadRequestException("Login failed: " + e.getMessage());
         }
     }
 
@@ -123,11 +126,11 @@ public class AuthService {
         );
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            return buildErrorResponse("Authentication failed", HttpStatus.UNAUTHORIZED);
+            throw new BadRequestException("Authentication failed: Invalid credentials");
         }
 
         UserEntry user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadCredentialsException("User not found"));
+                .orElseThrow(() -> new NotFoundException("Event " + email + " not found"));
 
         UserDetails userDetails = new User(
                 user.getEmail(),
@@ -177,7 +180,7 @@ public class AuthService {
 
             if (authentication == null || !authentication.isAuthenticated() ||
                     authentication.getName() == null || authentication.getName().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                throw new BadRequestException("User not authenticated");
             }
 
             String email = authentication.getName();
@@ -204,7 +207,7 @@ public class AuthService {
             return ResponseEntity.ok(session);
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            throw new BadRequestException("Failed to get session: " + e.getMessage());
         }
     }
 

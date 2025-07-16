@@ -1,5 +1,6 @@
 package com.skysolo.quiz.entry;
 
+import com.skysolo.quiz.payload.auth.UserSummary;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,15 +40,15 @@ public class QuizEntry {
     private List<QuestionEntry> questions = new ArrayList<>();
 
     @DBRef
-    private UserEntry user; // Creator
+    private UserSummary user; // Creator
 
     @Builder.Default
     @DBRef
-    private List<UserEntry> allowUsers = new ArrayList<>();
+    private List<UserSummary> allowUsers = new ArrayList<>();
 
     @Builder.Default
     @DBRef
-    private List<UserEntry> participants = new ArrayList<>();
+    private List<UserSummary> participants = new ArrayList<>();
 
     @Builder.Default
     private List<AttemptEntry> attempts = new ArrayList<>();

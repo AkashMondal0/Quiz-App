@@ -1,7 +1,6 @@
 package com.skysolo.quiz.payload.event;
 import com.skysolo.quiz.entry.EventEntry;
 import com.skysolo.quiz.entry.QuizEntry;
-import com.skysolo.quiz.entry.UserEntry;
 import com.skysolo.quiz.payload.auth.UserSummary;
 
 import java.util.stream.Collectors;
@@ -10,7 +9,7 @@ public final class DtoMappers {
 
     private DtoMappers() { }
 
-    public static UserSummary toSummary(UserEntry u) {
+    public static UserSummary toSummary(UserSummary u) {
         return UserSummary.builder()
                 .id(u.getId())
                 .username(u.getUsername())

@@ -1,5 +1,6 @@
 package com.skysolo.quiz.entry;
 
+import com.skysolo.quiz.payload.auth.UserSummary;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
@@ -22,7 +23,7 @@ public class OrganizationMemberEntry {
     private OrganizationEntry organization;
 
     @DBRef
-    private UserEntry user;
+    private UserSummary user;
 
     private String role; // 'admin', 'moderator', 'participant', 'viewer'
 

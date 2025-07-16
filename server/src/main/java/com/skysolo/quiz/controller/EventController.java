@@ -1,6 +1,5 @@
 package com.skysolo.quiz.controller;
 
-import com.skysolo.quiz.entry.UserEntry;
 import com.skysolo.quiz.payload.event.*;
 import com.skysolo.quiz.service.EventService;
 import jakarta.validation.Valid;
@@ -10,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -23,15 +21,14 @@ public class EventController {
 
     @PostMapping
     public ResponseEntity<EventResponse> create(@Valid @RequestBody EventCreateRequest request) {
-
         EventResponse created = eventService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
 
-        URI location = URI.create("/api/events/" + created.getId());
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .location(location)
-                .body(created);
+    @GetMapping("/list")
+    public ResponseEntity<List<EventMapper.EventSummary>> getAuthorEvents() {
+        List<EventMapper.EventSummary> events = eventService.getEventsByAuthor();
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/{id}")
@@ -40,23 +37,23 @@ public class EventController {
         return ResponseEntity.ok(event);
     }
 
-    @PostMapping("/{eventId}/{identifier}")
-    public ResponseEntity<EventWithRelations> addAllowedUser(@PathVariable String eventId,
-                                                             @PathVariable String identifier) {
-
-        EventWithRelations updated = eventService.addUserToAllowList(eventId, identifier);
-        return ResponseEntity.created(URI.create("/api/events/" + eventId)).body(updated);
-    }
-
-    @PostMapping("/{eventId}/allow-users")
-    public ResponseEntity<BulkAllowResponse> bulkAllow(
+    @PostMapping("/{eventId}/allow-users/add")
+    public ResponseEntity<BulkAllowResponse> addAllowedUsers(
             @PathVariable String eventId,
             @Valid @RequestBody BulkAllowRequest body) {
 
-        BulkAllowResponse resp =
-                eventService.bulkAddAllowUsers(eventId, body.emails());
-
+        BulkAllowResponse resp = eventService.bulkAddAllowUsers(eventId, body.emails());
         return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/{eventId}/allow-users/remove")
+    public ResponseEntity<BulkRemoveResponse> bulkRemoveAllowUsers(
+            @PathVariable String eventId,
+            @RequestBody @Valid BulkRemoveRequest request
+    ) {
+        BulkRemoveResponse response =
+                eventService.bulkRemoveAllowUsers(eventId, request.emails());
+        return ResponseEntity.ok(response);
     }
 
 }
