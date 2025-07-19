@@ -17,15 +17,13 @@ spring:
     active: dev
 server:
   port: 5000
-
-
-
 #  servlet:
 #    context-path: /api
-app:
-  jwt:
-    secret: xhs8v9CjR2nF7pLmQwErTyUiOpAsDfGh
-    expiration: 3600000
+# JWT Configuration
+jwt:
+  secret: mySecretKey123456789012345678901234567890123456789012345678901234567890
+  expiration: 2592000000 # 30 days in seconds
+  refresh-expiration: 604800 # 7 days in seconds
 #logging:
 #  level:
 #    root: ERROR

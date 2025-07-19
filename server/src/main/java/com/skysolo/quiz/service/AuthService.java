@@ -120,6 +120,67 @@ public class AuthService {
         }
     }
 
+    public ResponseEntity<SessionResponse> getSession() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+            if (authentication == null || !authentication.isAuthenticated() ||
+                    authentication.getName() == null || authentication.getName().isEmpty()) {
+                throw new BadRequestException("User not authenticated");
+            }
+
+            String email = authentication.getName();
+            String cacheKey = PREFIX + email;
+
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached instanceof CachedUserDTO cachedUser) {
+                return ResponseEntity.ok(toSessionResponse(cachedUser));
+            }
+
+            UserEntry user = userService.getUserByEmail(email);
+            SessionResponse session = new SessionResponse(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getAuthorities().stream()
+                            .map(GrantedAuthority::getAuthority)
+                            .collect(Collectors.toList()),
+                    user.getName(),
+                    user.getUsername()
+            );
+
+            // Cache the session
+            redisTemplate.opsForValue().set(cacheKey, session, 30, TimeUnit.DAYS);
+            return ResponseEntity.ok(session);
+
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to get session: " + e.getMessage());
+        }
+    }
+
+    public ResponseEntity<Boolean> logout() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new BadRequestException("User not authenticated");
+            }
+
+            String email = authentication.getName();
+            String cacheKey = PREFIX + email;
+
+            redisTemplate.delete(cacheKey);
+
+            // delete cookies
+
+            SecurityContextHolder.clearContext();
+
+            return ResponseEntity.ok()
+                    .header("Set-Cookie", "token=; HttpOnly; Path=/; Max-Age=0")
+                    .body(true);
+        } catch (Exception e) {
+            throw new BadRequestException("Logout failed: " + e.getMessage());
+        }
+    }
+
     private ResponseEntity<LoginResponse> authenticateAndGenerateToken(String email, String rawPassword, String successMessage) {
         Authentication authentication = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, rawPassword)
@@ -172,43 +233,6 @@ public class AuthService {
         response.setToken(null);
         response.setMessage(message);
         return ResponseEntity.status(status).body(response);
-    }
-
-    public ResponseEntity<SessionResponse> getSession() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-            if (authentication == null || !authentication.isAuthenticated() ||
-                    authentication.getName() == null || authentication.getName().isEmpty()) {
-                throw new BadRequestException("User not authenticated");
-            }
-
-            String email = authentication.getName();
-            String cacheKey = PREFIX + email;
-
-            Object cached = redisTemplate.opsForValue().get(cacheKey);
-            if (cached instanceof CachedUserDTO cachedUser) {
-                return ResponseEntity.ok(toSessionResponse(cachedUser));
-            }
-
-            UserEntry user = userService.getUserByEmail(email);
-            SessionResponse session = new SessionResponse(
-                    user.getId(),
-                    user.getEmail(),
-                    user.getAuthorities().stream()
-                            .map(GrantedAuthority::getAuthority)
-                            .collect(Collectors.toList()),
-                    user.getName(),
-                    user.getUsername()
-            );
-
-            // Cache the session
-            redisTemplate.opsForValue().set(cacheKey, session, 30, TimeUnit.DAYS);
-            return ResponseEntity.ok(session);
-
-        } catch (Exception e) {
-            throw new BadRequestException("Failed to get session: " + e.getMessage());
-        }
     }
 
     private SessionResponse toSessionResponse(CachedUserDTO user) {

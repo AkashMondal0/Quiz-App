@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/sidebar"
 import { appInfo } from "@/config/app-details"
 import Link from "next/link"
+import { useAppSelector } from "@/hooks"
 
 const data = {
   navMain: [
@@ -148,6 +149,13 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { session, sessionLoading, sessionError } = useAppSelector((state) => state.AccountState);
+  const user = {
+    name: sessionLoading == "normal" ? (session?.name || "Guest User") : "Loading...",
+    email: sessionLoading == "normal" ? (session?.email || "No email provided") : "Loading...",
+    avatar: sessionLoading == "normal" ? (session?.image || "/default-avatar.png") : "/default-avatar.png",
+  };
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -173,11 +181,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{
-          name: "shadcn",
-          email: "m@example.com",
-          avatar: "/avatars/shadcn.jpg",
-        }} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )

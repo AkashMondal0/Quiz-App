@@ -12,10 +12,10 @@ import java.util.Date;
 @Component
 public class JwtService {
 
-    @Value("${app.jwt.secret}")
+    @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${app.jwt.expiration}")
+    @Value("${jwt.expiration}")
     private long expiration;
 
     public String generateToken(UserDetails userDetails) {

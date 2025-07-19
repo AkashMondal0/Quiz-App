@@ -5,8 +5,6 @@ spring:
     redis:
       url: redis://default:1RszQx1XyC4ShhX27C1cz4mHpDDqf0v4@redis-10599.c292.ap-southeast-1-1.ec2.redns.redis-cloud.com:10599
       database: 0
-#      ssl:
-#        enabled: true
     mongodb:
       uri: mongodb+srv://springboot:Lf10YKyQcNv72Fjv@akashmondal0.u1f8e.mongodb.net/springboot
       auto-index-creation: true
@@ -21,11 +19,6 @@ spring:
           auth: true
           starttls:
             enable: true
-# JWT Configuration
-jwt:
-  secret: mySecretKey123456789012345678901234567890123456789012345678901234567890
-  expiration: 2592000 # 30 days in seconds
-  refresh-expiration: 604800 # 7 days in seconds
 #google:
 #  genai:
 #    apiKey: AIzaSyC13TdWpj6F8POlG9zB8SuQVRTvco0trS8

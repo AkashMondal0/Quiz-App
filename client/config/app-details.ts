@@ -9,7 +9,7 @@ export const appInfo = Object.freeze({
         "engaging",
         "application"
     ],
-    apiUrl: "http://192.168.31.232:5000",
+    apiUrl: "http://localhost:5000",
     appUrl: "http://localhost:3000",
     supportEmail: "",
 });

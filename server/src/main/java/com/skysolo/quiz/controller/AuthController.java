@@ -24,6 +24,11 @@ public class AuthController {
       return authService.login(request);
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Boolean> logOut() {
+        return authService.logout();
+    }
+
     @GetMapping("/session")
     public ResponseEntity<SessionResponse> session() { return authService.getSession(); }
 }
