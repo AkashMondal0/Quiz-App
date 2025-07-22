@@ -1,6 +1,7 @@
 package com.skysolo.quiz.entry;
 
 import com.skysolo.quiz.payload.auth.UserSummary;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
@@ -37,19 +38,20 @@ public class EventEntry {
     private int quizCount;
 
     @DBRef
-    private UserSummary user; // Creator
+    @NotNull
+    private UserEntry user;
 
     @Builder.Default
     @DBRef
-    private List<UserSummary> adminUsers = new ArrayList<>();
+    private List<UserEntry> adminUsers = new ArrayList<>();
 
     @Builder.Default
     @DBRef
-    private List<UserSummary> allowUsers = new ArrayList<>();
+    private List<UserEntry> allowUsers = new ArrayList<>();
 
     @Builder.Default
     @DBRef
-    private List<UserSummary> participants = new ArrayList<>();
+    private List<UserEntry> participants = new ArrayList<>();
 
     @Builder.Default
     @DBRef

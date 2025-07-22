@@ -1,67 +1,197 @@
-"use client"
-import React, { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2Icon } from "lucide-react"
-import { toast } from "sonner"
-import {Quiz} from "@/types/QuizTypes";
+"use client";
 
-export default function AiQuizPage() {
-    const [topic, setTopic] = useState("")
-    const [context, setContext] = useState("")
-    const [loading, setLoading] = useState(false)
-    const [quiz, setQuiz] = useState<Quiz | null>(null)
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { X } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import { type DateRange } from "react-day-picker";
+import { Combobox } from "@/components/ui/combobox"; // Replace with your combobox path
 
-    const generateQuiz = async () => {
-        if (!topic.trim() && !context.trim()) {
-            toast.error("Enter a topic or paste some text first");
-            return;
-        }
-        try {
-            setLoading(true)
-            setQuiz(null)
-            const res = await fetch("/api/generate-quiz", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ topic, context }),
-            })
-            if (!res.ok) throw new Error(await res.text())
-            const data: Quiz = await res.json()
-            setQuiz(data)
-        } catch (err: any) {
-            toast.error(err.message || "Failed to generate quiz")
-        } finally {
-            setLoading(false)
-        }
+const tagOptions = ["SPRING_HACK 2", "WINTER_CODEFEST", "SUMMER_BOOTCAMP"];
+
+const CreateEventPage = () => {
+  const [id] = useState("687d08f3f1fd8757fa974810");
+  const [tag, setTag] = useState("SPRING_HACK 2");
+  const [organizationId, setOrganizationId] = useState("ORG001");
+  const [title, setTitle] = useState("Spring Boot Hackathon");
+  const [description, setDescription] = useState("24‑hour coding sprint");
+  const [sendEmail, setSendEmail] = useState(true);
+  const [users, setUsers] = useState<string[]>([]);
+  const [newUser, setNewUser] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(2025, 7, 12),
+    to: new Date(2025, 7, 13),
+  });
+
+  const handleAddUser = () => {
+    if (newUser && !users.includes(newUser)) {
+      setUsers([...users, newUser]);
+      setNewUser("");
     }
+  };
 
-    return (
-        <div className="flex min-h-svh flex-col items-center p-6 md:p-10 gap-10">
-            <Card className="w-full max-w-3xl bg-background border-0">
-                <CardHeader className="space-y-3">
-                    <CardTitle>AI Quiz Generator</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Enter a topic or paste some text to generate a quiz. The AI will create questions based on the provided information.
-                    </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <Textarea
-                        placeholder="Enter a topic or paste text here..."
-                        value={context}
-                        onChange={e => setContext(e.target.value)}
-                        className="min-h-[80px]"
-                    />
-                    <Button onClick={generateQuiz} disabled={loading} className="w-full">
-                        {loading && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
-                        Generate Quiz
+  const handleRemoveUser = (user: string) => {
+    setUsers(users.filter((u) => u !== user));
+  };
+
+  const handleSubmit = () => {
+    const eventData = {
+      id,
+      tag,
+      organizationId,
+      title,
+      description,
+      startDate: dateRange?.from?.toISOString(),
+      endDate: dateRange?.to?.toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sendEmailFeatureEnabled: sendEmail,
+      allowUsers: users,
+      isPublic,
+      user: {
+        id: "6870c9034a0cd194698675bc",
+        username: "admin",
+        email: "oli@example.com",
+        url: "https://google.com",
+        name: "adminxx",
+      },
+      quizCount: 0,
+      quiz: [],
+      adminUsers: [],
+      participants: [],
+      participantsCount: 0,
+    };
+    console.log("Event Created:", eventData);
+    // submit logic here
+  };
+
+  return (
+    <main className="min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        <Card className="border border-muted shadow-sm rounded-2xl">
+          <CardContent className="p-6 md:p-10 space-y-10">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-extrabold leading-tight">Create a New Event</h1>
+              <p className="text-muted-foreground text-base">Fill in the details below to create a new event.</p>
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+              <div className="space-y-6">
+
+                <Label htmlFor="organization">Organization</Label>
+                <Combobox
+                  options={[
+                    "ORG001 - Tech Innovators",
+                    "ORG002 - Code Masters",
+                    "ORG003 - Dev Wizards",
+                    "ORG004 - Creative Coders",
+                    "ORG005 - Future Builders",
+                    "ORG006 - Digital Pioneers",
+                    "ORG007 - Code Crafters",
+                  ]}
+                  value={organizationId}
+                  onChange={setOrganizationId}
+                  placeholder="Select a Organization"
+                />
+
+                <Label htmlFor="title">Event Title</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Spring Hackathon"
+                />
+
+                <Label htmlFor="description" className="mt-4">Description</Label>
+                <Input
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="A 24-hour coding sprint"
+                />
+
+                <Label htmlFor="tag">Tag</Label>
+                <Combobox
+                  options={tagOptions}
+                  value={tag}
+                  onChange={setTag}
+                  placeholder="Select a tag"
+                />
+
+                <div className="flex flex-wrap items-center gap-4 my-6">
+                  <Switch id="send-email" checked={sendEmail} onCheckedChange={setSendEmail} />
+                  <Label htmlFor="send-email">Enable Email Notifications</Label>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 my-6">
+                  <Switch id="is-public" checked={isPublic} onCheckedChange={setIsPublic} />
+                  <Label htmlFor="is-public">Make Event Public</Label>
+                </div>
+
+              </div>
+
+              <div className="space-y-4">
+                <Label>Event Date Range</Label>
+                <div className="rounded-lg border shadow-sm w-full max-w-md mx-auto xl:mx-0">
+                  <Calendar
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label>Allowed Users</Label>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    value={newUser}
+                    onChange={(e) => setNewUser(e.target.value)}
+                    placeholder="user@example.com"
+                    className="flex-1"
+                  />
+                  <Button type="button" onClick={handleAddUser}>Add User</Button>
+                </div>
+              </div>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {users.map((user) => (
+                  <li
+                    key={user}
+                    className="flex justify-between items-center bg-muted px-4 py-3 rounded-lg shadow-sm"
+                  >
+                    <span className="text-sm font-medium break-words w-4/5">{user}</span>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveUser(user)}>
+                      <X className="w-4 h-4" />
                     </Button>
-                </CardContent>
-            </Card>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            {/*{quiz && <QuizCore quizData={quiz} />}*/}
-        </div>
-    )
-}
+            <div className="pt-6 flex justify-end">
+              <Button className="px-6 py-3 text-base font-semibold" onClick={handleSubmit}>
+                Create Event
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
+  );
+};
 
+export default CreateEventPage;

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { memo, useEffect, useRef, useState } from "react"
+import React, { memo, use, useEffect, useRef, useState } from "react"
 import {
     useForm,
     FormProvider,
@@ -15,6 +15,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
+import { useAxios } from "@/hooks/useAxios"
+import { Loader } from "lucide-react"
 
 /* ---------------- TYPES ----------------- */
 export interface QuizData {
@@ -39,9 +41,9 @@ type FormValues = z.infer<ReturnType<typeof buildSchema>>
 
 /* ------------ TIMER (no extra re‑renders) ----------- */
 const Timer: React.FC<{ secondsTotal: number; onExpire: () => void }> = ({
-                                                                             secondsTotal,
-                                                                             onExpire,
-                                                                         }) => {
+    secondsTotal,
+    onExpire,
+}) => {
     const [secondsLeft, setSecondsLeft] = useState(secondsTotal)
     const idRef = useRef<number>(0)
 
@@ -80,10 +82,10 @@ interface QuestionProps {
     showResults: boolean
 }
 const QuestionItem = memo(function Item({
-                                            q,
-                                            qIdx,
-                                            showResults,
-                                        }: QuestionProps) {
+    q,
+    qIdx,
+    showResults,
+}: QuestionProps) {
     const { control } = useFormContext<FormValues>()
     const {
         field: { value, onChange },
@@ -133,8 +135,10 @@ const QuestionItem = memo(function Item({
 })
 
 /* -------------- PAGE ------------------- */
-export default function QuizPage({}: { quizData?: QuizData }) {
-    const quizData = demoQuiz // fetch or prop‑inject in real app
+const QuizPage = ({
+    quizData,
+}: { quizData: QuizData }) => {
+
     const [showResults, setShowResults] = useState(false)
 
     const methods = useForm<FormValues>({
@@ -207,72 +211,29 @@ export default function QuizPage({}: { quizData?: QuizData }) {
     )
 }
 
-/* ------------- DEMO DATA ------------- */
-const demoQuiz: QuizData = {
-    eventId: "686d7888fd1025fad0d46f1a",
-    title: "Java Basics Quiz",
-    description: "Test your Java knowledge",
-    durationLimitSeconds: 900,
-    questions: [
+export default function Page({
+    params
+}: {
+    params: Promise<{ id: string }>
+}) {
+    const { id } = use(params);
+
+    const { data, loading, error } = useAxios<QuizData>({
+        url: `/quiz/${id}`,
+        method: 'GET',
+    });
+
+    console.log("Quiz data:", data, "Loading:", loading, "Error:", error);
+
+    return <>
+        <>{loading}</>
         {
-            text: "Which keyword is used to implement inheritance in Java?",
-            options: ["implement", "extends", "inherits", "uses"],
-            correctIndex: 1,
-        },
-        {
-            text: "What is the default value of an uninitialized int variable in Java?",
-            options: ["0", "null", "undefined", "NaN"],
-            correctIndex: 0,
-        },
-        {
-            text: "Which method is the entry point of a Java application?",
-            options: ["start()", "init()", "main()", "run()"],
-            correctIndex: 2,
-        },
-        {
-            text: "Which of the following is not a Java access modifier?",
-            options: ["public", "private", "protected", "package"],
-            correctIndex: 3,
-        },
-        {
-            text: "Which keyword is used to prevent method overriding?",
-            options: ["final", "static", "abstract", "const"],
-            correctIndex: 0,
-        },
-        {
-            text: "Which collection class allows duplicate elements?",
-            options: ["Set", "Map", "List", "EnumSet"],
-            correctIndex: 2,
-        },
-        {
-            text: "What is the size of an int in Java?",
-            options: ["16 bits", "32 bits", "64 bits", "8 bits"],
-            correctIndex: 1,
-        },
-        {
-            text: "Which exception is thrown when dividing by zero?",
-            options: [
-                "NullPointerException",
-                "ArithmeticException",
-                "NumberFormatException",
-                "IllegalArgumentException",
-            ],
-            correctIndex: 1,
-        },
-        {
-            text: "What does JVM stand for?",
-            options: [
-                "Java Variable Machine",
-                "Java Virtual Machine",
-                "Java Visual Model",
-                "Joint Virtual Module",
-            ],
-            correctIndex: 1,
-        },
-        {
-            text: "Which interface is used to sort a collection?",
-            options: ["Serializable", "Comparator", "Cloneable", "Readable"],
-            correctIndex: 1,
-        },
-    ],
+            data ? <QuizPage quizData={data} /> : (
+                <div className="flex items-center justify-center h-full">
+                    <Loader className="animate-spin h-6 w-6" />
+                    <span className="ml-2">Loading quiz...</span>
+                </div>
+            )
+        }
+    </>
 }

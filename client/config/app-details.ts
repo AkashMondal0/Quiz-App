@@ -9,7 +9,7 @@ export const appInfo = Object.freeze({
         "engaging",
         "application"
     ],
-    apiUrl: "http://localhost:5000",
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
     appUrl: "http://localhost:3000",
-    supportEmail: "",
+    supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "",
 });

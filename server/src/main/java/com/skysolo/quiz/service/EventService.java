@@ -1,6 +1,7 @@
 package com.skysolo.quiz.service;
 
 import com.skysolo.quiz.entry.EventEntry;
+import com.skysolo.quiz.entry.UserEntry;
 import com.skysolo.quiz.exception.BadRequestException;
 import com.skysolo.quiz.exception.NotFoundException;
 import com.skysolo.quiz.payload.auth.UserSummary;
@@ -44,7 +45,7 @@ public class EventService {
     public EventResponse create(EventCreateRequest req) {
         try{
             String userId = getUserId();
-            UserSummary creator = userRepository.findSummaryById(userId)
+            UserEntry creator = userRepository.findById(userId)
                     .orElseThrow(() -> new NotFoundException("User not found"));
 
             EventEntry saved = eventRepository.save(EventEntry.builder()
@@ -113,10 +114,10 @@ public class EventService {
                     .collect(Collectors.toSet());
 
             // fetch all users in one query
-            List<UserSummary> users = userRepository.findAllByEmailIn(targets);
+            List<UserEntry> users = userRepository.findAllByEmailIn(targets);
 
             // index by email for quick lookup
-            Map<String, UserSummary> emailToUser = users.stream()
+            Map<String, UserEntry> emailToUser = users.stream()
                     .collect(Collectors.toMap(u -> u.getEmail().toLowerCase(), u -> u));
 
             List<String> added   = new ArrayList<>();
@@ -124,7 +125,7 @@ public class EventService {
             List<String> missing = new ArrayList<>();
 
             for (String email : targets) {
-                UserSummary u = emailToUser.get(email);
+                UserEntry u = emailToUser.get(email);
                 if (u == null) {
                     missing.add(email);
                     continue;
@@ -160,9 +161,9 @@ public class EventService {
                 .map(String::toLowerCase)
                 .collect(Collectors.toSet());
 
-        List<UserSummary> foundUsers = userRepository.findAllByEmailIn(normalizedEmails);
+        List<UserEntry> foundUsers = userRepository.findAllByEmailIn(normalizedEmails);
 
-        Map<String, UserSummary> emailToUser = foundUsers.stream()
+        Map<String, UserEntry> emailToUser = foundUsers.stream()
                 .collect(Collectors.toMap(
                         u -> u.getEmail().toLowerCase(),
                         u -> u
@@ -173,7 +174,7 @@ public class EventService {
         List<String> notFound = new ArrayList<>();
 
         for (String email : normalizedEmails) {
-            UserSummary user = emailToUser.get(email);
+            UserEntry user = emailToUser.get(email);
 
             if (user == null) {
                 notFound.add(email);

@@ -40,15 +40,15 @@ public class QuizEntry {
     private List<QuestionEntry> questions = new ArrayList<>();
 
     @DBRef
-    private UserSummary user; // Creator
+    private UserEntry user; // Creator
 
     @Builder.Default
     @DBRef
-    private List<UserSummary> allowUsers = new ArrayList<>();
+    private List<UserEntry> allowUsers = new ArrayList<>();
 
     @Builder.Default
     @DBRef
-    private List<UserSummary> participants = new ArrayList<>();
+    private List<UserEntry> participants = new ArrayList<>();
 
     @Builder.Default
     private List<AttemptEntry> attempts = new ArrayList<>();

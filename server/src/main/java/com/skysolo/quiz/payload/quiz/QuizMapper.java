@@ -11,7 +11,7 @@ import java.util.List;
 
 public class QuizMapper {
 
-        public static QuizEntry toQuiz(CreateQuizRequest req, EventEntry event, UserSummary creator) {
+        public static QuizEntry toQuiz(CreateQuizRequest req, EventEntry event, UserEntry creator) {
                 List<QuestionEntry> questions = req.questions() != null
                         ? req.questions().stream().map(q ->
                         new QuestionEntry(q.text(), q.options(), q.correctIndex())

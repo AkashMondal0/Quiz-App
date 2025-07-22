@@ -3,7 +3,7 @@ export interface User {
     email: string
     image: string
     name: string
-    roles: string[]
+    roles?: string[]
 }
 
 export type loadingType = "normal" | "pending" | "error" | "idle";

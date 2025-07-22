@@ -1,20 +1,13 @@
-// lib/axios.ts
+import { appInfo } from '@/config/app-details'
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api', // your Spring Boot base URL
+  baseURL: appInfo.apiUrl,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: true
 })
 
-// Add JWT token to headers if available
-api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-export default api
+export default api;

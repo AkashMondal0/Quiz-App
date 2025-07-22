@@ -1,4 +1,5 @@
 package com.skysolo.quiz.entry;
+import com.skysolo.quiz.payload.auth.UserSummary;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;

@@ -19,6 +19,6 @@ spring:
           auth: true
           starttls:
             enable: true
-#google:
-#  genai:
-#    apiKey: AIzaSyC13TdWpj6F8POlG9zB8SuQVRTvco0trS8
+genai:
+  apiKey: AIzaSyC13TdWpj6F8POlG9zB8SuQVRTvco0trS8
+  modelUrl: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=

@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CalendarIcon } from 'lucide-react';
 import { Event } from '@/types/QuizTypes';
-const EventCard = ({events}:{
-    events:Event[]
+const EventCard = ({ events }: {
+    events: Event[]
 }) => {
     const route = useRouter();
 
@@ -22,7 +22,7 @@ const EventCard = ({events}:{
             <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-2 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
                 {events.map((event) => (
                     <Card className="w-full max-w-sm shadow-md border rounded-2xl cursor-pointer duration-300"
-                          key={event.id} onClick={() => {
+                        key={event.id} onClick={() => {
                             handleCardClick(event.id);
                         }}>
                         <CardHeader className="space-y-1">

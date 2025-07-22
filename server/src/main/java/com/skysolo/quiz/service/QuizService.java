@@ -38,7 +38,7 @@ public class QuizService {
             EventEntry event = eventRepository.findById(req.eventId())
                     .orElseThrow(() -> new NotFoundException("Event not found"));
 
-            UserSummary creator = userRepository.findSummaryById(req.creatorId())
+            UserEntry creator = userRepository.findById(req.creatorId())
                     .orElseThrow(() -> new NotFoundException("User not found"));
 
             QuizEntry quiz = QuizMapper.toQuiz(req, event, creator);
@@ -59,7 +59,7 @@ public class QuizService {
         QuizEntry quiz = quizRepository.findById(req.quizId())
                 .orElseThrow(() -> new NotFoundException("Quiz not found"));
 
-        UserSummary user = userRepository.findSummaryById(req.userId())
+        UserEntry user = userRepository.findById(req.userId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         // Check participant limit
@@ -118,5 +118,20 @@ public class QuizService {
         );
     }
 
+    public List<QuizEntry> getQuizzesByEvent(String eventId) {
+     try {
+            EventEntry event = eventRepository.findById(eventId)
+                    .orElseThrow(() -> new NotFoundException("Event not found"));
+
+            return quizRepository.findAllByEventId(event.getId());
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to retrieve quizzes: " + e.getMessage());
+        }
+    }
+
+    public QuizEntry getQuizById(String quizId) {
+        return quizRepository.findById(quizId)
+                .orElseThrow(() -> new NotFoundException("Quiz not found"));
+    }
 
 }

@@ -1,16 +1,9 @@
 package com.skysolo.quiz.payload.event;
 
 import com.skysolo.quiz.entry.EventEntry;
+import com.skysolo.quiz.payload.auth.UserSummary;
 
 public class EventMapper {
-
-    public record UserEntry(
-            String id,
-            String username,
-            String email,
-            String url,
-            String name
-    ) { }
     public record EventSummary(
             String id,
             String tag,
@@ -25,10 +18,10 @@ public class EventMapper {
             boolean isPublic,
             int participantsCount,
             int quizCount,
-            UserEntry creator // just creator info
+            UserSummary user // just creator info
     ) { }
     public static EventSummary toEventSummary(EventEntry e) {
-        UserEntry userEntry = new UserEntry(
+        UserSummary userEntry = new UserSummary(
                 e.getUser().getId(),
                 e.getUser().getUsername(),
                 e.getUser().getEmail(),

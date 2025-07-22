@@ -1,25 +1,25 @@
-spring:
-  application:
-    name: MagicKitchen
-  kafka:
-    bootstrap-servers: 192.168.31.232:9092
-    consumer:
-      group-id: my-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-  data:
-    redis:
-      url: rediss://default:AVNS_9Gibmk8om2RAV0VOhIH@valkey-snaapio-skysolo007.b.aivencloud.com:28574
-      database: 0
-      ssl:
-        enabled: true
-    mongodb:
-        uri: mongodb+srv://springboot:Lf10YKyQcNv72Fjv@akashmondal0.u1f8e.mongodb.net/springboot
-        auto-index-creation: true
+#spring:
+#  application:
+#    name: MagicKitchen
+#  kafka:
+#    bootstrap-servers: 192.168.31.232:9092
+#    consumer:
+#      group-id: my-group
+#      auto-offset-reset: earliest
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#  data:
+#    redis:
+#      url: rediss://default:AVNS_9Gibmk8om2RAV0VOhIH@valkey-snaapio-skysolo007.b.aivencloud.com:28574
+#      database: 0
+#      ssl:
+#        enabled: true
+#    mongodb:
+#        uri: mongodb+srv://springboot:Lf10YKyQcNv72Fjv@akashmondal0.u1f8e.mongodb.net/springboot
+#        auto-index-creation: true
 #  kafka:
 #    bootstrap-servers: ${KAFKA_SERVERS}
 #    producer:

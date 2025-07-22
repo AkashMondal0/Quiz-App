@@ -18,7 +18,7 @@ public class AttemptEntry {
     private String id;
 
     @DBRef
-    private UserSummary user;
+    private UserEntry user;
 
     @DBRef
     private QuizEntry quiz;
