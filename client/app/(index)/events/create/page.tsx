@@ -10,12 +10,14 @@ import { X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { type DateRange } from "react-day-picker";
-import { Combobox } from "@/components/ui/combobox"; // Replace with your combobox path
-
+import { Combobox } from "@/components/ui/combobox";
+import { type Event } from "@/types/QuizTypes";
+import { useRouter } from "next/navigation";
+import api from "@/lib/axios";
 const tagOptions = ["SPRING_HACK 2", "WINTER_CODEFEST", "SUMMER_BOOTCAMP"];
 
 const CreateEventPage = () => {
-  const [id] = useState("687d08f3f1fd8757fa974810");
+  const router = useRouter();
   const [tag, setTag] = useState("SPRING_HACK 2");
   const [organizationId, setOrganizationId] = useState("ORG001");
   const [title, setTitle] = useState("Spring Boot Hackathon");
@@ -25,8 +27,8 @@ const CreateEventPage = () => {
   const [newUser, setNewUser] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date(2025, 7, 12),
-    to: new Date(2025, 7, 13),
+    from: new Date(),
+    to: new Date(new Date().getTime() + 24 * 60 * 60 * 1000), // default to next day
   });
 
   const handleAddUser = () => {
@@ -40,35 +42,23 @@ const CreateEventPage = () => {
     setUsers(users.filter((u) => u !== user));
   };
 
-  const handleSubmit = () => {
-    const eventData = {
-      id,
-      tag,
-      organizationId,
-      title,
-      description,
-      startDate: dateRange?.from?.toISOString(),
-      endDate: dateRange?.to?.toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      sendEmailFeatureEnabled: sendEmail,
-      allowUsers: users,
-      isPublic,
-      user: {
-        id: "6870c9034a0cd194698675bc",
-        username: "admin",
-        email: "oli@example.com",
-        url: "https://google.com",
-        name: "adminxx",
-      },
-      quizCount: 0,
-      quiz: [],
-      adminUsers: [],
-      participants: [],
-      participantsCount: 0,
-    };
-    console.log("Event Created:", eventData);
-    // submit logic here
+  const handleSubmit = async () => {
+    try {
+      const eventData: Event = {
+        tag,
+        organizationId,
+        title,
+        description,
+        startDate: dateRange?.from?.toISOString(),
+        endDate: dateRange?.to?.toISOString(),
+        sendEmailFeatureEnabled: sendEmail,
+        isPublic: isPublic,
+      };
+      const res = await api.post("/event", eventData);
+      router.replace(`/events/${res.data.id}`);
+    } catch (error) {
+      console.error("Failed to create event:", error);
+    }
   };
 
   return (

@@ -215,6 +215,7 @@ public class EventService {
         List<EventEntry> events = eventRepository.findByUserId(userId);
 
         return events.stream()
+                .sorted((e1, e2) -> e2.getCreatedAt().compareTo(e1.getCreatedAt())) // Descending
                 .map(EventMapper::toEventSummary)
                 .collect(Collectors.toList());
     }

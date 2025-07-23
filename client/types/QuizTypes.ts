@@ -9,41 +9,41 @@ export interface User {
 export type loadingType = "normal" | "pending" | "error" | "idle";
 
 export interface Event {
-    id: string
+    id?: string
     tag: string
     organizationId: string
     title: string
-    description: string
-    startDate: string
-    endDate: string
-    createdAt: string
-    updatedAt: string
-    user: User
+    description: string | Date
+    startDate?: string | Date
+    endDate?: string | Date
+    createdAt?: string | Date
+    updatedAt?: string | Date
+    user?: User
     quizCount?: number
     quiz?: Quiz[]
     sendEmailFeatureEnabled?: boolean
     adminUsers?: User[]
-    allowUsers?:User[]
+    allowUsers?: User[]
     isPublic?: boolean
     participants?: User[]
     participantsCount?: number
 }
 
 export interface Quiz {
-    id: string
-    eventId: string
-    title: string
-    createdAt: string
-    description: string
-    questions: Question[]
-    user: User
+    id?: string
+    eventId?: string
+    title?: string
+    createdAt?: string
+    description?: string
+    questions?: Question[]
+    user?: User
     // settings
-    isDurationEnabled: boolean
-    durationLimitSeconds: number
-    endedAt: string
+    isDurationEnabled?: boolean
+    durationLimitSeconds?: number
+    endedAt?: string
     startedAt?: string
     sendEmailFeatureEnabled?: boolean
-    participantLimitEnabled: boolean
+    participantLimitEnabled?: boolean
     participantLimit?: number
     isPublic?: boolean
     // who attempted the quiz
