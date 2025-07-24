@@ -5,7 +5,6 @@ import com.skysolo.quiz.exception.BadRequestException;
 import com.skysolo.quiz.exception.NotFoundException;
 import com.skysolo.quiz.payload.attempt.AttemptResponse;
 import com.skysolo.quiz.payload.attempt.CreateAttemptRequest;
-import com.skysolo.quiz.payload.auth.UserSummary;
 import com.skysolo.quiz.payload.quiz.CreateQuizRequest;
 import com.skysolo.quiz.payload.quiz.QuizMapper;
 import com.skysolo.quiz.repository.AttemptRepository;
@@ -30,15 +29,29 @@ public class QuizService {
     private UserRepository userRepository;
     @Autowired
     private AttemptRepository attemptRepository;
+    @Autowired
+    private AuthService authService;
+
+
+    private String getUserId() {
+        String userId = authService.getSession().getBody().getId();
+
+        if (userId == null || userId.isEmpty()) {
+            throw new NotFoundException("User not found");
+        }
+
+        return userId;
+    }
 
 
     @Transactional
     public QuizEntry createQuiz(CreateQuizRequest req) {
         try {
+            String userId = getUserId();
             EventEntry event = eventRepository.findById(req.eventId())
                     .orElseThrow(() -> new NotFoundException("Event not found"));
 
-            UserEntry creator = userRepository.findById(req.creatorId())
+            UserEntry creator = userRepository.findById(userId)
                     .orElseThrow(() -> new NotFoundException("User not found"));
 
             QuizEntry quiz = QuizMapper.toQuiz(req, event, creator);

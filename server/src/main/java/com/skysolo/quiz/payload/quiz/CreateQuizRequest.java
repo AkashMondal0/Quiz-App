@@ -18,7 +18,6 @@ public record CreateQuizRequest(
         boolean participantLimitEnabled,
         Integer participantLimit,
         boolean isPublic,
-        String creatorId,
         List<QuestionDto> questions
 ) { }
 

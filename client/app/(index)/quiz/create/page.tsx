@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
+
 import {
     Card,
     CardHeader,
@@ -21,13 +22,6 @@ import {
     SelectItem,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import {
-    eventSchema,
-    EventFormSchema,
-    quizSchema,
-    QuizFormSchema,
-} from "@/types/schemas/quizSchema"
-import { Minus, Plus } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import {
     Tabs,
@@ -35,36 +29,99 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
-import { PlusIcon } from "lucide-react"
-import { Quiz, Question } from "@/types/QuizTypes"
-import EditableQuestionCard from "@/components/card/EditableQuestionCard"
+
+import { eventSchema, quizSchema, EventFormSchema, QuizFormSchema } from "@/types/schemas/quizSchema"
+import { Question, Quiz } from "@/types/QuizTypes"
 import api from "@/lib/axios"
 
+import QuizList from "@/components/quiz/QuizList"
+import Counter from "@/components/quiz/Counter"
+import QuestionCardSkeleton from "@/components/quiz/QuestionCardSkeleton"
+import { useDebounce } from "@/hooks/useDebounce"
 
+export function deepEqual(a: any, b: any) {
+    return JSON.stringify(a) === JSON.stringify(b)
+}
 export default function CreateQuizPage() {
     const [questionsData, setQuestionsData] = useState<Question[]>([])
+    const [participantLimit, setParticipantLimit] = useState(100)
+    const [durationLimitSeconds, setDurationLimitSeconds] = useState(900)
     const [loading, setLoading] = useState(false)
+    const [numberOfQuestions, setNumberOfQuestions] = useState(10)
+
+    const quizForm = useForm<QuizFormSchema>({
+        resolver: zodResolver(quizSchema),
+        defaultValues: {
+            topic: "",
+            numberOfQuestions,
+            difficulty: "easy",
+        },
+    })
+
+    const eventForm = useForm<EventFormSchema>({
+        resolver: zodResolver(eventSchema),
+        defaultValues: {
+            eventId: "687d08f3f1fd8757fa974810",
+            title: "My Quiz Event",
+            description: "This is a description",
+            isDurationEnabled: true,
+            durationLimitSeconds,
+            sendEmailFeatureEnabled: false,
+            participantLimitEnabled: true,
+            participantLimit,
+            isPublic: true,
+        },
+    })
 
     const generateQuizHandler = async (data: QuizFormSchema) => {
         try {
+            eventForm.setValue("title", data.topic)
             setLoading(true)
-            const response = await api.post("/quiz/generate", {
-                topic: data.topic,
-                numberOfQuestions: data.numberOfQuestions,
-                difficulty: data.difficulty,
-            })
-            if (!response.data || !Array.isArray(response.data)) {
-                toast.error("Invalid quiz data received")
-                return
-            }
-            setQuestionsData(response.data)
+            const res = await api.post("/quiz/generate", data)
+            if (!res.data || !Array.isArray(res.data)) throw new Error("Invalid response")
+            setQuestionsData(res.data)
             toast.success("Quiz generated successfully!")
-        } catch (error) {
-            console.error("Error generating quiz:", error)
+        } catch (err) {
+            console.error("Error generating quiz:", err)
             toast.error("Failed to generate quiz")
         } finally {
             setLoading(false)
         }
+    }
+
+    const saveEventHandler = (data: EventFormSchema) => {
+        toast.success("Event settings saved!", {
+            description: JSON.stringify({
+                ...data,
+                participantLimit,
+                durationLimitSeconds,
+            }),
+        })
+    }
+
+    const updateNumberOfQuestions = (val: number) => {
+        if (val < 5 || val > 50) {
+            toast.error("Questions must be between 5 and 50")
+            return
+        }
+        setNumberOfQuestions(val)
+        quizForm.setValue("numberOfQuestions", val)
+    }
+
+    const createQuiz = () => {
+        const data: Quiz = {
+            eventId: "687d08f3f1fd8757fa974810",
+            title: eventForm.getValues("title"),
+            description: eventForm.getValues("description"),
+            participantLimit,
+            durationLimitSeconds,
+            isPublic: eventForm.getValues("isPublic"),
+            isDurationEnabled: eventForm.getValues("isDurationEnabled"),
+            sendEmailFeatureEnabled: eventForm.getValues("sendEmailFeatureEnabled"),
+            participantLimitEnabled: eventForm.getValues("participantLimitEnabled"),
+            questions: questionsData
+        }
+        console.log("Creating quiz with data:", data)
     }
 
     return (
@@ -73,21 +130,37 @@ export default function CreateQuizPage() {
             <div className="flex w-full max-w-2xl flex-col gap-6 mx-auto">
                 <Tabs defaultValue="quiz">
                     <TabsList className="grid grid-cols-2 mx-auto">
-                        <TabsTrigger value="quiz">Quiz</TabsTrigger>
-                        <TabsTrigger value="event">Settings</TabsTrigger>
+                        <TabsTrigger value="quiz" disabled={loading}>Quiz</TabsTrigger>
+                        <TabsTrigger value="event" disabled={loading}>Settings</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="quiz" className="p-6">
-                        <div className="min-h-screen">
-                            <QuizSettingsForm generateQuizHandler={generateQuizHandler} />
-                            {loading && <p className="text-center text-gray-500">Generating quiz...</p>}
-                            {!loading && questionsData.length === 0 && (
-                                <p className="text-center text-gray-500">No questions generated yet.</p>
-                            )}
-                            <QuizList questionsData={questionsData} />
-                        </div>
+
+                    <TabsContent value="quiz">
+                        <>
+                            <QuizForm
+                                form={quizForm}
+                                questionsData={questionsData}
+                                loading={loading}
+                                numberOfQuestions={numberOfQuestions}
+                                updateNumberOfQuestions={updateNumberOfQuestions}
+                                onSubmit={generateQuizHandler}
+                            />
+                            <div className="w-full flex justify-end mt-4">
+                                <Button className="ml-auto" onClick={createQuiz}>
+                                    Create Quiz
+                                </Button>
+                            </div>
+                        </>
                     </TabsContent>
-                    <TabsContent value="event" className="p-6">
-                        <EventFormCard />
+
+                    <TabsContent value="event">
+                        <EventForm
+                            form={eventForm}
+                            participantLimit={participantLimit}
+                            setParticipantLimit={setParticipantLimit}
+                            durationLimitSeconds={durationLimitSeconds}
+                            setDurationLimitSeconds={setDurationLimitSeconds}
+                            onSubmit={saveEventHandler}
+                        />
                     </TabsContent>
                 </Tabs>
             </div>
@@ -95,101 +168,55 @@ export default function CreateQuizPage() {
     )
 }
 
-function QuizSettingsForm({ generateQuizHandler }: {
-    generateQuizHandler?: (data: QuizFormSchema) => void
-}) {
-    const [numberOfQuestions, setNumberOfQuestions] = useState(10)
-    const {
-        register,
-        handleSubmit,
-        setValue,
-        formState: { errors, isSubmitting },
-    } = useForm<QuizFormSchema>({
-        resolver: zodResolver(quizSchema),
-        defaultValues: {
-            topic: "",
-            numberOfQuestions: numberOfQuestions,
-            difficulty: "easy",
-        },
-    })
+function QuizForm({ form, questionsData, loading, numberOfQuestions, updateNumberOfQuestions, onSubmit }: any) {
+    const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = form
 
-    const onSubmit = (data: QuizFormSchema) => {
-        if (generateQuizHandler) {
-            generateQuizHandler(data)
-        } else {
-            toast.error("No handler provided for quiz generation")
-        }
+    if (loading) {
+        return <QuestionCardSkeleton size={numberOfQuestions} />
+    }
+
+    if (questionsData.length > 0) {
+        return (
+            <>
+                <QuizList questionList={questionsData} />
+            </>
+        )
     }
 
     return (
-        <Card className="max-w-xl mx-auto my-8 w-full">
+        <Card>
             <CardHeader>
-                <CardTitle className="text-center text-xl">
-                    AI Quiz Generator
-                </CardTitle>
-                <CardDescription className="text-sm text-muted-foreground text-center">
-                    Enter a topic or paste some text to generate a quiz. The AI will create questions based on the provided information.
+                <CardTitle className="text-center text-xl">AI Quiz Generator</CardTitle>
+                <CardDescription className="text-sm text-center text-muted-foreground">
+                    Enter a topic or paste text. The AI will generate questions.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         <label className="block text-sm font-medium">Topic</label>
-                        <Textarea {...register("topic")} placeholder="Enter a topic or paste text here" rows={3} />
+                        <Textarea {...register("topic")} placeholder="Enter topic or text..." rows={3} disabled={isSubmitting} />
                         {errors.topic && <p className="text-sm text-red-500">{errors.topic.message}</p>}
                     </div>
 
-                    <div className="space-y-1">
-                        <Counter
-                            label="Number of Questions"
-                            min={1}
-                            max={50}
-                            step={1}
-                            decrement={() => {
-                                if (numberOfQuestions <= 5) {
-                                    toast.error("Minimum 5 questions required")
-                                    return
-                                }
-                                setNumberOfQuestions((prev) => Math.max(prev - 1, 1))
-                                setValue("numberOfQuestions", numberOfQuestions - 1)
-                            }}
-                            increment={() => {
-                                if (numberOfQuestions >= 50) {
-                                    toast.error("Maximum 50 questions allowed")
-                                    return
-                                }
-                                setNumberOfQuestions((prev) => Math.min(prev + 1, 50))
-                                setValue("numberOfQuestions", numberOfQuestions + 1)
-                            }}
-                            value={numberOfQuestions} />
-                        {errors.numberOfQuestions && (
-                            <p className="text-sm text-red-500">
-                                {errors.numberOfQuestions.message}
-                            </p>
-                        )}
-                    </div>
+                    <Counter
+                        label="Number of Questions"
+                        value={numberOfQuestions}
+                        min={5}
+                        max={50}
+                        step={1}
+                        increment={() => updateNumberOfQuestions(numberOfQuestions + 1)}
+                        decrement={() => updateNumberOfQuestions(numberOfQuestions - 1)}
+                    />
 
-                    <div className="space-y-1">
-                        <label className="block text-sm font-medium">Difficulty</label>
-                        <Select
-                            defaultValue="easy"
-                            onValueChange={(value) =>
-                                setValue("difficulty", value as QuizFormSchema["difficulty"])
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select difficulty" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="easy">Easy</SelectItem>
-                                <SelectItem value="medium">Medium</SelectItem>
-                                <SelectItem value="hard">Hard</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {errors.difficulty && (
-                            <p className="text-sm text-red-500">{errors.difficulty.message}</p>
-                        )}
-                    </div>
+                    <Select defaultValue="easy" onValueChange={(val) => setValue("difficulty", val)}>
+                        <SelectTrigger><SelectValue placeholder="Select difficulty" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="easy">Easy</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="hard">Hard</SelectItem>
+                        </SelectContent>
+                    </Select>
 
                     <Button type="submit" disabled={isSubmitting} className="w-full">
                         Generate Quiz
@@ -200,267 +227,141 @@ function QuizSettingsForm({ generateQuizHandler }: {
     )
 }
 
-function EventFormCard() {
-    const [participantLimit, setParticipantLimit] = useState(100)
-    const [durationLimitSeconds, setDurationLimitSeconds] = useState(900)
-
+function EventForm({
+    form,
+    participantLimit,
+    setParticipantLimit,
+    durationLimitSeconds,
+    setDurationLimitSeconds,
+    onSubmit,
+}: any) {
     const {
         register,
         control,
-        handleSubmit,
+        watch,
         setValue,
-        getValues,
         formState: { errors },
-    } = useForm<EventFormSchema>({
-        resolver: zodResolver(eventSchema),
-        defaultValues: {
-            eventId: "687d08f3f1fd8757fa974810",
-            title: "Java Basics Quiz",
-            description: "A quiz on Java fundamentals",
-            isDurationEnabled: true,
-            durationLimitSeconds: 900,
-            sendEmailFeatureEnabled: false,
-            participantLimitEnabled: true,
-            participantLimit: 100,
-            isPublic: true,
-            creatorId: "6870c9034a0cd194698675bc",
-        },
-    })
+    } = form
 
-    const onSubmit = (data: EventFormSchema) => {
-        toast.success("Event settings saved!", {
-            description: JSON.stringify({
-                ...data,
-                durationLimitSeconds: getValues("durationLimitSeconds"),
-                participantLimit: getValues("participantLimit"),
-            }),
-        })
+    const watchedValues = watch()
+
+    const debouncedTitle = useDebounce(watchedValues.title, 500)
+    const debouncedDescription = useDebounce(watchedValues.description, 500)
+
+    const formSnapshot = {
+        ...watchedValues,
+        title: debouncedTitle,
+        description: debouncedDescription,
+        participantLimit,
+        durationLimitSeconds,
+    }
+
+    const hasMounted = useRef(false)
+    const lastSaved = useRef(formSnapshot)
+
+    useEffect(() => {
+        if (!hasMounted.current) {
+            hasMounted.current = true
+            return
+        }
+
+        const changed = !deepEqual(formSnapshot, lastSaved.current)
+
+        if (changed) {
+            lastSaved.current = formSnapshot
+            onSubmit(formSnapshot)
+        }
+    }, [formSnapshot, onSubmit])
+
+    const updateCounter = (
+        setter: Function,
+        state: number,
+        step: number,
+        min: number,
+        max: number,
+        field: keyof typeof watchedValues
+    ) => {
+        const newValue = Math.min(Math.max(state + step, min), max)
+        setter(newValue)
+        setValue(field, newValue)
     }
 
     return (
-        <Card className="max-w-xl mx-auto my-8 w-full">
+        <Card className="w-full">
             <CardHeader>
                 <CardTitle className="text-center text-xl">Event Settings</CardTitle>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="space-y-1">
+                <form className="space-y-6">
+                    <div className="space-y-2">
                         <label className="block text-sm font-medium">Event ID</label>
-                        <Input
-                            {...register("eventId")}
-                            placeholder="Event ID"
-                            disabled
-                        />
+                        <Input {...register("eventId")} disabled />
+                        {errors.eventId && <p className="text-sm text-red-500">{errors.eventId.message}</p>}
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         <label className="block text-sm font-medium">Event Title</label>
-                        <Input {...register("title")} placeholder="Event Title" />
-                        {errors.title && (
-                            <p className="text-sm text-red-500">{errors.title.message}</p>
-                        )}
+                        <Input {...register("title")} />
+                        {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         <label className="block text-sm font-medium">Event Description</label>
-                        <Textarea
-                            {...register("description")}
-                            placeholder="Event Description"
-                            rows={3}
-                        />
-                        {errors.description && (
-                            <p className="text-sm text-red-500">{errors.description.message}</p>
-                        )}
+                        <Textarea {...register("description")} rows={3} />
+                        {errors.description && <p className="text-sm text-red-500">{errors.description.message}</p>}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Enable Duration Limit</span>
-                        <Controller
-                            name="isDurationEnabled"
-                            control={control}
-                            render={({ field }) => (
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            )}
-                        />
-                    </div>
+                    <FormSwitch label="Enable Duration Limit" name="isDurationEnabled" control={control} />
 
                     <Counter
                         label="Duration (seconds)"
-                        field="durationLimitSeconds"
+                        value={durationLimitSeconds}
                         min={60}
                         max={7200}
                         step={60}
-                        decrement={() => {
-                            setDurationLimitSeconds((prev) => Math.max(prev - 60, 60))
-                            setValue("durationLimitSeconds", durationLimitSeconds - 60)
-                        }}
-                        increment={() => {
-                            setDurationLimitSeconds((prev) => Math.min(prev + 60, 7200))
-                            setValue("durationLimitSeconds", durationLimitSeconds + 60)
-                        }}
-                        value={durationLimitSeconds}
+                        increment={() =>
+                            updateCounter(setDurationLimitSeconds, durationLimitSeconds, 60, 60, 7200, "durationLimitSeconds")
+                        }
+                        decrement={() =>
+                            updateCounter(setDurationLimitSeconds, durationLimitSeconds, -60, 60, 7200, "durationLimitSeconds")
+                        }
                     />
 
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Enable Email Feature</span>
-                        <Controller
-                            name="sendEmailFeatureEnabled"
-                            control={control}
-                            render={({ field }) => (
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            )}
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Enable Participant Limit</span>
-                        <Controller
-                            name="participantLimitEnabled"
-                            control={control}
-                            render={({ field }) => (
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            )}
-                        />
-                    </div>
+                    <FormSwitch label="Enable Email Feature" name="sendEmailFeatureEnabled" control={control} />
+                    <FormSwitch label="Enable Participant Limit" name="participantLimitEnabled" control={control} />
 
                     <Counter
-                        decrement={() => {
-                            setParticipantLimit((prev) => Math.max(prev - 10, 1))
-                            setValue("participantLimit", participantLimit - 10)
-                        }}
-                        increment={() => {
-                            setParticipantLimit((prev) => Math.min(prev + 10, 1000))
-                            setValue("participantLimit", participantLimit + 10)
-                        }}
-                        value={participantLimit}
                         label="Participant Limit"
-                        field="participantLimit"
+                        value={participantLimit}
                         min={1}
                         max={1000}
                         step={10}
+                        increment={() =>
+                            updateCounter(setParticipantLimit, participantLimit, 10, 1, 1000, "participantLimit")
+                        }
+                        decrement={() =>
+                            updateCounter(setParticipantLimit, participantLimit, -10, 1, 1000, "participantLimit")
+                        }
                     />
 
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Public Event</span>
-                        <Controller
-                            name="isPublic"
-                            control={control}
-                            render={({ field }) => (
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            )}
-                        />
-                    </div>
-
-                    <Button type="submit" className="w-full">
-                        Save Event
-                    </Button>
+                    <FormSwitch label="Public Event" name="isPublic" control={control} />
                 </form>
             </CardContent>
         </Card>
     )
 }
 
-const Counter = ({
-    label,
-    decrement,
-    increment,
-    value,
-}: {
-    label: string
-    field?: keyof EventFormSchema
-    min: number
-    max: number
-    step?: number
-    decrement: () => void
-    increment: () => void
-    value: number
-}) => {
-
+function FormSwitch({ label, name, control }: { label: string, name: keyof EventFormSchema, control: any }) {
     return (
         <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{label}</span>
-            <div className="flex items-center gap-3 p-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={decrement}
-                    className="text-center rounded-full text-xl font-bold"
-                >
-                    <Minus className="rotate-180" />
-                </Button>
-                <span className="w-12 text-center text-lg font-bold">{value}</span>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={increment}
-                    className="text-center rounded-full text-xl font-bold"
-                >
-                    <Plus className="rotate-180" />
-                </Button>
-            </div>
-        </div>
-
-    )
-}
-
-const QuizList = ({ questionsData = [] }: { questionsData?: Question[] }) => {
-    const [quiz, setQuiz] = useState<Quiz | null>(null)
-    const [questions, setQuestions] = useState<Question[]>(questionsData)
-    const [editingIndex, setEditingIndex] = useState<number | null>(null)
-
-    const updateQuestion = (index: number, updatedQuestion: Question) => {
-        if (!quiz) return
-        const updatedQuestions = [...questions]
-        updatedQuestions[index] = updatedQuestion
-        setQuiz({ ...quiz, questions: updatedQuestions })
-        setEditingIndex(null)
-    }
-
-    const deleteQuestion = (index: number) => {
-        if (!quiz) return
-        const updatedQuestions = questions.filter((_, idx) => idx !== index)
-        setQuiz({ ...quiz, questions: updatedQuestions })
-        setEditingIndex(null)
-        toast.success("Question deleted successfully")
-    }
-
-    const addQuestion = () => {
-        const newQuestion: Question = {
-            text: "New question?",
-            options: ["Option 1", "Option 2"],
-            correctIndex: 0,
-        }
-        setQuestions([...questions, newQuestion])
-        setEditingIndex(questions.length)
-    }
-
-    useEffect(() => {
-        if (questionsData.length > 0) {
-            setQuestions(questionsData)
-        }
-    }, [questionsData])
-
-    return (
-        <div className="max-w-xl mx-auto my-8">
-            {questions.map((question, idx) => (
-                <EditableQuestionCard
-                    key={idx}
-                    index={idx}
-                    question={question}
-                    editingIndex={editingIndex}
-                    setEditingIndex={setEditingIndex}
-                    onSave={(q) => updateQuestion(idx, q)}
-                    onDelete={() => deleteQuestion(idx)}
-                />
-            ))}
-
-            <Button variant="secondary" onClick={addQuestion}
-                className="max-w-xl mx-auto w-full">
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Add New Question
-            </Button>
+            <Controller
+                name={name}
+                control={control}
+                render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                )}
+            />
         </div>
     )
 }

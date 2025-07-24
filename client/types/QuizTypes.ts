@@ -53,7 +53,7 @@ export interface Quiz {
     participantsCount?: number
     // all users who attempted the quiz
     attempts?: Attempt[]
-    attemptCount: number
+    attemptCount?: number
 }
 
 export interface Question {
