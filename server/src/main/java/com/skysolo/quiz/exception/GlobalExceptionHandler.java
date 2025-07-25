@@ -36,5 +36,11 @@ public class GlobalExceptionHandler {
     public Map<String, Object> handleConflict(ConflictException ex, HttpServletRequest req) {
         return errorHandle(HttpStatus.CONFLICT, ex, req, "Conflict");
     }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Map<String, Object> handleForbidden(ForbiddenException ex, HttpServletRequest req) {
+        return errorHandle(HttpStatus.FORBIDDEN, ex, req, "Forbidden");
+    }
 }
 

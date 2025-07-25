@@ -3,6 +3,7 @@ package com.skysolo.quiz.service;
 import com.skysolo.quiz.entry.*;
 import com.skysolo.quiz.exception.BadRequestException;
 import com.skysolo.quiz.exception.ConflictException;
+import com.skysolo.quiz.exception.ForbiddenException;
 import com.skysolo.quiz.exception.NotFoundException;
 import com.skysolo.quiz.payload.attempt.AttemptResponse;
 import com.skysolo.quiz.payload.attempt.CreateAttemptRequest;
@@ -176,4 +177,46 @@ public class QuizService {
         return QuizMapper.toResponse(quiz);
     }
 
+    @Transactional
+    public QuizResponse attemptQuiz(String quizId) {
+        String userId = getUserId();
+
+        UserEntry currentUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        QuizEntry quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
+
+        boolean isPrivate = !quiz.isPublic();
+
+        if (isPrivate && (quiz.getAllowUsers() == null || quiz.getAllowUsers().stream()
+                .noneMatch(user -> user.getId().equals(userId)))) {
+            throw new ForbiddenException("You are not allowed to attempt this private quiz.");
+        }
+
+        // ❌ If user already submitted (in participants)
+        boolean alreadySubmitted = quiz.getParticipants().stream()
+                .anyMatch(user -> user.getId().equals(userId));
+        if (alreadySubmitted) {
+            throw new ForbiddenException("You have already submitted this quiz.");
+        }
+
+        // ✅ Allow only if user has not attempted before
+        boolean hasAttempted = quiz.getAttempts().stream()
+                .anyMatch(a -> a.getUserId().equals(userId));
+
+        if (!hasAttempted) {
+            AttemptEntry attempt = AttemptEntry.builder()
+                    .userId(userId)
+                    .quizId(quizId)
+                    .attemptedAt(Instant.now().toString())
+                    .build();
+
+            quiz.getAttempts().add(attempt);
+            quiz.setAttemptCount(quiz.getAttemptCount() + 1);
+            quizRepository.save(quiz);
+        }
+
+        return QuizMapper.toAttendResponse(quiz);
+    }
 }

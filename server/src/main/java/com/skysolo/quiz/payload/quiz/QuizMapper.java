@@ -1,6 +1,5 @@
 package com.skysolo.quiz.payload.quiz;
 
-import com.skysolo.quiz.entry.AttemptEntry;
 import com.skysolo.quiz.entry.EventEntry;
 import com.skysolo.quiz.entry.QuestionEntry;
 import com.skysolo.quiz.entry.QuizEntry;
@@ -100,4 +99,40 @@ public class QuizMapper {
                         user.getName()
                 );
         }
+
+        public static QuizResponse toAttendResponse(QuizEntry q) {
+                UserSummary creator = toUserSummary(q.getUser());
+
+                List<QuizResponse.QuestionResponse> questions = q.getQuestions().stream()
+                        .map(qst -> new QuizResponse.QuestionResponse(
+                                qst.getText(),
+                                qst.getOptions(),
+                                -1 // hide correct answer
+                        ))
+                        .toList();
+
+                return new QuizResponse(
+                        q.getId(),
+                        q.getEventId(),
+                        q.getTitle(),
+                        q.getDescription(),
+                        q.getCreatedAt(),
+                        q.getStartedAt(),
+                        q.getEndedAt(),
+                        q.isDurationEnabled(),
+                        q.getDurationLimitSeconds(),
+                        q.isParticipantLimitEnabled(),
+                        q.getParticipantLimit(),
+                        q.isSendEmailFeatureEnabled(),
+                        q.isPublic(),
+                        q.getAttemptCount(),
+                        q.getParticipantsCount(),
+                        creator,
+                        List.of(), // allowUsers
+                        List.of(), // participants
+                        questions,
+                        List.of()
+                );
+        }
+
 }

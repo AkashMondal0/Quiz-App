@@ -60,6 +60,12 @@ public class QuizController {
         return ResponseEntity.ok(quiz);
     }
 
+    @GetMapping("/{quizId}/attempt")
+    public ResponseEntity<QuizResponse> attemptQuiz(@PathVariable String quizId) {
+        QuizResponse attempt = quizService.attemptQuiz(quizId);
+        return ResponseEntity.ok(attempt);
+    }
+
     @PostMapping("/generate")
     public ResponseEntity<List<QuestionEntry>> generateQuiz(@RequestBody @Valid GenerateQuizRequest request) {
         List<QuestionEntry> attempts = geminiService.generateQuizQuestions(request);

@@ -19,6 +19,7 @@ import { useAxios } from "@/hooks/useAxios"
 import { Loader } from "lucide-react"
 import api from "@/lib/axios"
 import { Question, Quiz } from "@/types/QuizTypes"
+import Link from "next/link"
 
 
 
@@ -131,6 +132,7 @@ const QuizPage = ({
 }: { quizData: Quiz }) => {
 
     const [showResults, setShowResults] = useState(false)
+    const [results, setResults] = useState<{ score: number; total: number } | null>(null)
 
     const methods = useForm<FormValues>({
         resolver: zodResolver(buildSchema(quizData?.questions?.length)),
@@ -144,6 +146,7 @@ const QuizPage = ({
                 quizId: quizData.id,
                 selectedAnswers: data.answers
             })
+            setResults({ score: res.data.score, total: quizData.questions.length })
             toast.success(`Quiz submitted! Your score: ${res.data.score}/${quizData.questions.length}`)
             setShowResults(true)
         } catch (error) {
@@ -155,6 +158,35 @@ const QuizPage = ({
         if (!showResults && methods.formState.isValid) {
             submit(methods.getValues())
         }
+    }
+
+    if (results) {
+        return (
+            <div className="flex min-h-svh flex-col items-center gap-8 p-6 md:p-10">
+                <Card className="w-full max-w-2xl">
+
+                    <h1 className="text-2xl font-bold text-center mt-4">
+                        Quiz Results
+                    </h1>
+                    <CardHeader className="space-y-2">
+                        <CardTitle>{quizData.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                            {quizData.description}
+                        </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-lg font-semibold text-center">
+                            Your Score: {results.score}/{results.total}
+                        </p>
+                        <Button asChild className="w-full" onClick={() => setShowResults(false)}>
+                            <Link href={`/qz/${quizData.id}`} className="font-semibold text-center">
+                                Go back to quiz
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
     }
 
     return (
@@ -212,9 +244,29 @@ export default function Page({
     const { id } = use(params);
 
     const { data, loading, error } = useAxios<Quiz>({
-        url: `/quiz/${id}`,
+        url: `/quiz/${id}/attempt`,
         method: 'GET',
     });
+
+    if (error && error?.status === 403) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen p-6">
+                <div className="max-w-md w-full rounded-xl shadow-md overflow-hidden p-8">
+                    <h2 className="text-2xl font-bold mb-4 text-center text-red-600">
+                        Access Denied
+                    </h2>
+                    <p className="text-center mb-8">
+                        You are not allowed to attempt this quiz.
+                    </p>
+                    <Button asChild className="w-full">
+                        <Link href="/" className="font-semibold text-center">
+                            Go back to home
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+        )
+    }
 
     return <>
         {loading ? <div className="flex items-center justify-center h-screen gap-2">

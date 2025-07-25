@@ -5,7 +5,7 @@ export default function EventCardSkeletonList({ count = 4 }: {
     count?: number
 }) {
   return (
-    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-2 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-0 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       {Array.from({ length: count }).map((_, index) => (
         <Card
           className="w-full max-w-sm shadow-md border rounded-2xl cursor-pointer duration-300"
@@ -31,10 +31,10 @@ export default function EventCardSkeletonList({ count = 4 }: {
             </div>
 
             {/* Uncomment if needed for createdAt date */}
-            {/* <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <Skeleton className="h-4 w-4 rounded-sm" />
               <Skeleton className="h-4 w-24" />
-            </div> */}
+            </div>
           </CardFooter>
         </Card>
       ))}

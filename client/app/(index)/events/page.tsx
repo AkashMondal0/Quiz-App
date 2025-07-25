@@ -43,7 +43,7 @@ export default function Page() {
                                 <div className="text-red-500">
                                     Error loading events
                                 </div>
-                            ) : !events ? <></> :
+                            ) : !events ? <EventCardSkeletonList count={20} /> :
                                 <EventCard events={events} />}
                         </div>
                     </div>

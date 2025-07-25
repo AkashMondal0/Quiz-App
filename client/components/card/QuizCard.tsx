@@ -59,7 +59,7 @@ function QuizCardBase({ quiz }: { quiz: Quiz }) {
     }, [quizUrl])
 
     return (
-        <Card className="group relative flex flex-col justify-between overflow-hidden transition-shadow hover:shadow-xl">
+        <Card className="@container/card group relative flex flex-col justify-between overflow-hidden transition-shadow hover:shadow-xl">
             {/* share */}
             <button
                 onClick={(e) => {
@@ -126,7 +126,7 @@ function QuizCardBase({ quiz }: { quiz: Quiz }) {
                     variant="ghost"
                     size="icon"
                     className={cn(
-                        "text-muted-foreground transition hover:bg-muted/60 hover:text-primary",
+                        "hover:text-muted-foreground transition hover:bg-muted/90 bg-muted text-primary",
                         "w-9 h-9"
                     )}
                     title="Details"

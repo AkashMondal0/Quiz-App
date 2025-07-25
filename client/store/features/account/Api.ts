@@ -1,12 +1,12 @@
 import { appInfo } from "@/config/app-details";
+import api from "@/lib/axios";
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
 
 export const fetchSession = createAsyncThunk(
     "get/session",
     async (args: undefined, thunkApi) => {
         try {
-            const res = await axios.get(appInfo.apiUrl + "/auth/session", { withCredentials: true });
+            const res = await api.get(appInfo.apiUrl + "/auth/session");
             return res.data;
         } catch (error: any) {
             return thunkApi.rejectWithValue({

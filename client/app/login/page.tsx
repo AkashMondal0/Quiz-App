@@ -13,12 +13,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import axios from "axios"
 import z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react"
 import { toast } from "sonner"
 import {appInfo} from "@/config/app-details";
+import api from "@/lib/axios"
 
 const FormSchema = z.object({
   password: z.string().min(6, {
@@ -46,12 +46,10 @@ export default function Page() {
   const onSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true);
-      await axios.post(appInfo.apiUrl+"/auth/login", {
+      await api.post(appInfo.apiUrl+"/auth/login", {
         email: data.email,
         password: data.password,
-      }, {
-        withCredentials: true,
-      })
+      });
       toast.success("Login successful!",{
         description: "You will be redirected shortly.",
       });
