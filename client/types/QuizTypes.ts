@@ -35,7 +35,7 @@ export interface Quiz {
     title?: string
     createdAt?: string
     description?: string
-    questions?: Question[]
+    questions: Question[]
     user?: User
     // settings
     isDurationEnabled?: boolean

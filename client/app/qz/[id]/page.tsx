@@ -17,20 +17,11 @@ import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { useAxios } from "@/hooks/useAxios"
 import { Loader } from "lucide-react"
+import api from "@/lib/axios"
+import { Question, Quiz } from "@/types/QuizTypes"
 
-/* ---------------- TYPES ----------------- */
-export interface QuizData {
-    eventId: string
-    title: string
-    description: string
-    durationLimitSeconds: number
-    questions: Question[]
-}
-interface Question {
-    text: string
-    options: string[]
-    correctIndex: number
-}
+
+
 
 /* --------------- VALIDATION ------------- */
 const buildSchema = (qCount: number) =>
@@ -108,7 +99,7 @@ const QuestionItem = memo(function Item({
                 onValueChange={val => onChange(Number(val))}
                 className="grid gap-2"
             >
-                {q.options.map((opt, optIdx) => (
+                {q?.options?.map((opt, optIdx) => (
                     <label
                         key={optIdx}
                         className="flex items-center gap-2 rounded-md border p-3 hover:bg-muted"
@@ -127,7 +118,7 @@ const QuestionItem = memo(function Item({
                 >
                     {answered === q.correctIndex
                         ? "Correct"
-                        : `Wrong — correct answer: ${q.options[q.correctIndex]}`}
+                        : `Wrong — correct answer: ${q.options?.[q.correctIndex ?? 0]}`}
                 </p>
             )}
         </fieldset>
@@ -137,25 +128,27 @@ const QuestionItem = memo(function Item({
 /* -------------- PAGE ------------------- */
 const QuizPage = ({
     quizData,
-}: { quizData: QuizData }) => {
+}: { quizData: Quiz }) => {
 
     const [showResults, setShowResults] = useState(false)
 
     const methods = useForm<FormValues>({
-        resolver: zodResolver(buildSchema(quizData.questions.length)),
+        resolver: zodResolver(buildSchema(quizData?.questions?.length)),
         mode: "onChange",
         defaultValues: { answers: Array(quizData.questions.length).fill(-1) },
     })
 
-    const grade = (data: FormValues) =>
-        data.answers.reduce(
-            (acc, ans, i) => acc + Number(ans === quizData.questions[i].correctIndex),
-            0
-        )
-
-    const submit = (data: FormValues) => {
-        toast.success(`You scored ${grade(data)}/${quizData.questions.length}`)
-        setShowResults(true)
+    const submit = async (data: FormValues) => {
+        try {
+            const res = await api.post(`/quiz/attempt`, {
+                quizId: quizData.id,
+                selectedAnswers: data.answers
+            })
+            toast.success(`Quiz submitted! Your score: ${res.data.score}/${quizData.questions.length}`)
+            setShowResults(true)
+        } catch (error) {
+            toast.error("Failed to submit quiz. Please try again.")
+        }
     }
 
     const autoSubmit = () => {
@@ -174,7 +167,7 @@ const QuizPage = ({
                     </p>
 
                     <Timer
-                        secondsTotal={quizData.durationLimitSeconds}
+                        secondsTotal={quizData?.durationLimitSeconds || 0}
                         onExpire={autoSubmit}
                     />
                 </CardHeader>
@@ -218,22 +211,15 @@ export default function Page({
 }) {
     const { id } = use(params);
 
-    const { data, loading, error } = useAxios<QuizData>({
+    const { data, loading, error } = useAxios<Quiz>({
         url: `/quiz/${id}`,
         method: 'GET',
     });
 
-    console.log("Quiz data:", data, "Loading:", loading, "Error:", error);
-
     return <>
-        <>{loading}</>
-        {
-            data ? <QuizPage quizData={data} /> : (
-                <div className="flex items-center justify-center h-full">
-                    <Loader className="animate-spin h-6 w-6" />
-                    <span className="ml-2">Loading quiz...</span>
-                </div>
-            )
-        }
+        {loading ? <div className="flex items-center justify-center h-screen gap-2">
+            <Loader className="animate-spin h-6 w-6" /> <p className="font-bold">Loading...</p>
+        </div> : <></>}
+        {data ? <QuizPage quizData={data} /> : <></>}
     </>
 }

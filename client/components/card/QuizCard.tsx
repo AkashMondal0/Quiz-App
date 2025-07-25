@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {cn} from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const formatDate = (d?: string) =>
     d
@@ -29,9 +29,9 @@ const formatDate = (d?: string) =>
 
 /* ---------- REUSABLE BADGE ------------- */
 const MetaBadge = ({
-                       icon: Icon,
-                       label,
-                   }: {
+    icon: Icon,
+    label,
+}: {
     icon: React.ElementType
     label: string
 }) => (
@@ -47,7 +47,7 @@ const MetaBadge = ({
 /* ---------- MAIN CARD ------------------ */
 function QuizCardBase({ quiz }: { quiz: Quiz }) {
     const quizUrl = `/qz/${quiz.id}`
-    const detailsUrl = `/quiz/${quiz.id}`
+    const detailsUrl = `/quiz/${quiz.id}/details`
 
     const handleShare = useCallback(async () => {
         try {
@@ -85,8 +85,8 @@ function QuizCardBase({ quiz }: { quiz: Quiz }) {
             <CardContent className="space-y-3 text-sm">
                 {/* Quiz Info Row */}
                 <div className="flex flex-wrap items-center gap-2">
-                    <MetaBadge icon={HelpCircleIcon} label={`${quiz.questions.length} Questions`} />
-                    <MetaBadge icon={TimerIcon} label={`${Math.round(quiz.durationLimitSeconds / 60)} min`} />
+                    <MetaBadge icon={HelpCircleIcon} label={`${quiz.questions?.length} Questions`} />
+                    <MetaBadge icon={TimerIcon} label={`${Math.round(quiz?.durationLimitSeconds ? quiz.durationLimitSeconds / 60 : 0)} min`} />
                 </div>
 
                 {/* Event Dates Row */}
@@ -117,7 +117,7 @@ function QuizCardBase({ quiz }: { quiz: Quiz }) {
 
             {/* footer */}
             <CardFooter className="flex items-center justify-between gap-3 pt-0">
-                <Button asChild size="sm" className="flex-1">
+                <Button asChild size="sm" className="flex-1" title="Take quiz">
                     <Link href={quizUrl}>Take quiz</Link>
                 </Button>
 
@@ -140,7 +140,7 @@ function QuizCardBase({ quiz }: { quiz: Quiz }) {
             {/* hover accent */}
             <div
                 aria-hidden
-                className="pointer-events-none absolute -inset-px rounded-lg bg-gradient-to-r from-primary/15 to-transparent opacity-0 transition-opacity opacity-100"
+                className="pointer-events-none absolute -inset-px rounded-lg bg-gradient-to-r from-primary/15 to-transparent transition-opacity opacity-100"
             />
         </Card>
     )

@@ -6,6 +6,8 @@ import com.skysolo.quiz.payload.attempt.AttemptResponse;
 import com.skysolo.quiz.payload.attempt.CreateAttemptRequest;
 import com.skysolo.quiz.payload.quiz.CreateQuizRequest;
 import com.skysolo.quiz.payload.quiz.GenerateQuizRequest;
+import com.skysolo.quiz.payload.quiz.QuizMapper;
+import com.skysolo.quiz.payload.quiz.QuizResponse;
 import com.skysolo.quiz.service.GeminiService;
 import com.skysolo.quiz.service.QuizService;
 import jakarta.validation.Valid;
@@ -49,6 +51,12 @@ public class QuizController {
     @GetMapping("/{quizId}")
     public ResponseEntity<QuizEntry> getQuizById(@PathVariable String quizId) {
         QuizEntry quiz = quizService.getQuizById(quizId);
+        return ResponseEntity.ok(quiz);
+    }
+
+    @GetMapping("/{quizId}/details")
+    public ResponseEntity<QuizResponse> getQuizDetailsById(@PathVariable String quizId) {
+        QuizResponse quiz = quizService.getQuizDetailsById(quizId);
         return ResponseEntity.ok(quiz);
     }
 

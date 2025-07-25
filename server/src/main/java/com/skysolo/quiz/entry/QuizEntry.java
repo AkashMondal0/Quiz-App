@@ -1,6 +1,5 @@
 package com.skysolo.quiz.entry;
 
-import com.skysolo.quiz.payload.auth.UserSummary;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

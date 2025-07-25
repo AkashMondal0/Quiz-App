@@ -54,7 +54,7 @@ export default function Page({
                                 <Input placeholder="Search quiz" className="w-full sm:w-56 md:w-64 lg:w-80" />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {quizzes?.map((quiz) => (
+                                {Array.isArray(quizzes) && quizzes.map((quiz) => (
                                     <QuizCard key={quiz.id} quiz={quiz} />
                                 ))}
                             </div>

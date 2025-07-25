@@ -8,7 +8,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { PencilIcon, TrashIcon, SaveIcon, PlusIcon } from "lucide-react"
 import { FormattedText } from "./FormattedText"
 
-const QuizList = ({ questionList = [] }: { questionList?: Question[] }) => {
+const QuizList = ({ questionList = [],
+    createQuiz
+}: {
+    questionList?: Question[],
+    createQuiz: () => void
+}) => {
     const [questions, setQuestions] = useState<Question[]>(questionList)
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
 
@@ -50,15 +55,20 @@ const QuizList = ({ questionList = [] }: { questionList?: Question[] }) => {
                     onDelete={() => deleteQuestion(idx)}
                 />
             ))}
+            <div className="flex justify-between mt-6">
+                <Button
+                    variant="secondary"
+                    className="flex items-center"
+                    onClick={addQuestion}
+                >
+                    <PlusIcon className="w-4 h-4 mr-2" />
+                    Add New Question
+                </Button>
 
-            <Button
-                variant="secondary"
-                onClick={addQuestion}
-                className="max-w-xl mx-auto w-full"
-            >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Add New Question
-            </Button>
+                <Button className="flex items-center" onClick={createQuiz}>
+                    Create Quiz
+                </Button>
+            </div>
         </div>
     )
 }

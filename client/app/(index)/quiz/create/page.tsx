@@ -38,12 +38,16 @@ import QuizList from "@/components/quiz/QuizList"
 import Counter from "@/components/quiz/Counter"
 import QuestionCardSkeleton from "@/components/quiz/QuestionCardSkeleton"
 import { useDebounce } from "@/hooks/useDebounce"
+import { useRouter } from "next/navigation"
 
-export function deepEqual(a: any, b: any) {
+function deepEqual(a: any, b: any) {
     return JSON.stringify(a) === JSON.stringify(b)
 }
+
 export default function CreateQuizPage() {
+    const router = useRouter()
     const [questionsData, setQuestionsData] = useState<Question[]>([])
+
     const [participantLimit, setParticipantLimit] = useState(100)
     const [durationLimitSeconds, setDurationLimitSeconds] = useState(900)
     const [loading, setLoading] = useState(false)
@@ -108,20 +112,30 @@ export default function CreateQuizPage() {
         quizForm.setValue("numberOfQuestions", val)
     }
 
-    const createQuiz = () => {
-        const data: Quiz = {
-            eventId: "687d08f3f1fd8757fa974810",
-            title: eventForm.getValues("title"),
-            description: eventForm.getValues("description"),
-            participantLimit,
-            durationLimitSeconds,
-            isPublic: eventForm.getValues("isPublic"),
-            isDurationEnabled: eventForm.getValues("isDurationEnabled"),
-            sendEmailFeatureEnabled: eventForm.getValues("sendEmailFeatureEnabled"),
-            participantLimitEnabled: eventForm.getValues("participantLimitEnabled"),
-            questions: questionsData
+    const createQuiz = async () => {
+        try {
+            const data: Quiz = {
+                eventId: "688251f60c3f94912729bbf3",
+                title: eventForm.getValues("title"),
+                description: eventForm.getValues("description"),
+                participantLimit,
+                durationLimitSeconds,
+                isPublic: eventForm.getValues("isPublic"),
+                isDurationEnabled: eventForm.getValues("isDurationEnabled"),
+                sendEmailFeatureEnabled: eventForm.getValues("sendEmailFeatureEnabled"),
+                participantLimitEnabled: eventForm.getValues("participantLimitEnabled"),
+                questions: questionsData
+            };
+            const response = await api.post("/quiz", data)
+            if (response.data) {
+                toast.success("Quiz created successfully!")
+                router.replace(`/quiz/${response.data.id}/details`)
+            } else {
+                toast.error("Failed to create quiz")
+            }
+        } catch (error) {
+            toast.error("Failed to create quiz")
         }
-        console.log("Creating quiz with data:", data)
     }
 
     return (
@@ -130,26 +144,20 @@ export default function CreateQuizPage() {
             <div className="flex w-full max-w-2xl flex-col gap-6 mx-auto">
                 <Tabs defaultValue="quiz">
                     <TabsList className="grid grid-cols-2 mx-auto">
-                        <TabsTrigger value="quiz" disabled={loading}>Quiz</TabsTrigger>
-                        <TabsTrigger value="event" disabled={loading}>Settings</TabsTrigger>
+                        <TabsTrigger value="quiz" className="cursor-pointer" disabled={loading}>Quiz</TabsTrigger>
+                        <TabsTrigger value="event" className="cursor-pointer" disabled={loading}>Settings</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="quiz">
-                        <>
-                            <QuizForm
-                                form={quizForm}
-                                questionsData={questionsData}
-                                loading={loading}
-                                numberOfQuestions={numberOfQuestions}
-                                updateNumberOfQuestions={updateNumberOfQuestions}
-                                onSubmit={generateQuizHandler}
-                            />
-                            <div className="w-full flex justify-end mt-4">
-                                <Button className="ml-auto" onClick={createQuiz}>
-                                    Create Quiz
-                                </Button>
-                            </div>
-                        </>
+                        <QuizForm
+                            form={quizForm}
+                            questionsData={questionsData}
+                            loading={loading}
+                            numberOfQuestions={numberOfQuestions}
+                            updateNumberOfQuestions={updateNumberOfQuestions}
+                            onSubmit={generateQuizHandler}
+                            createQuiz={createQuiz}
+                        />
                     </TabsContent>
 
                     <TabsContent value="event">
@@ -168,7 +176,7 @@ export default function CreateQuizPage() {
     )
 }
 
-function QuizForm({ form, questionsData, loading, numberOfQuestions, updateNumberOfQuestions, onSubmit }: any) {
+function QuizForm({ form, questionsData, loading, numberOfQuestions, updateNumberOfQuestions, onSubmit, createQuiz }: any) {
     const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = form
 
     if (loading) {
@@ -176,11 +184,7 @@ function QuizForm({ form, questionsData, loading, numberOfQuestions, updateNumbe
     }
 
     if (questionsData.length > 0) {
-        return (
-            <>
-                <QuizList questionList={questionsData} />
-            </>
-        )
+        return (<QuizList questionList={questionsData} createQuiz={createQuiz} />)
     }
 
     return (

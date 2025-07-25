@@ -2,11 +2,13 @@ package com.skysolo.quiz.service;
 
 import com.skysolo.quiz.entry.*;
 import com.skysolo.quiz.exception.BadRequestException;
+import com.skysolo.quiz.exception.ConflictException;
 import com.skysolo.quiz.exception.NotFoundException;
 import com.skysolo.quiz.payload.attempt.AttemptResponse;
 import com.skysolo.quiz.payload.attempt.CreateAttemptRequest;
 import com.skysolo.quiz.payload.quiz.CreateQuizRequest;
 import com.skysolo.quiz.payload.quiz.QuizMapper;
+import com.skysolo.quiz.payload.quiz.QuizResponse;
 import com.skysolo.quiz.repository.AttemptRepository;
 import com.skysolo.quiz.repository.EventRepository;
 import com.skysolo.quiz.repository.QuizRepository;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class QuizService {
@@ -67,68 +70,87 @@ public class QuizService {
         }
     }
 
+
     @Transactional
     public AttemptResponse createAttempt(CreateAttemptRequest req) {
-        QuizEntry quiz = quizRepository.findById(req.quizId())
-                .orElseThrow(() -> new NotFoundException("Quiz not found"));
+        try {
+            QuizEntry quiz = quizRepository.findById(req.quizId())
+                    .orElseThrow(() -> new NotFoundException("Quiz not found"));
 
-        UserEntry user = userRepository.findById(req.userId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            String userId = getUserId();
+            UserEntry user = userRepository.findById(userId)
+                    .orElseThrow(() -> new NotFoundException("User not found"));
 
-        // Check participant limit
-        if (quiz.isParticipantLimitEnabled() &&
-                quiz.getParticipantsCount() >= quiz.getParticipantLimit()) {
-            throw new BadRequestException("Participant limit reached");
-        }
-
-        // Check if user is allowed
-        if (quiz.getAllowUsers() != null && !quiz.getAllowUsers().isEmpty()) {
-            boolean allowed = quiz.getAllowUsers().stream()
-                    .anyMatch(u -> u.getId().equals(user.getId()));
-            if (!allowed) {
-                throw new BadRequestException("User not allowed to attempt this quiz");
+            // Check participant limit
+            if (quiz.isParticipantLimitEnabled() &&
+                    quiz.getParticipantsCount() >= quiz.getParticipantLimit()) {
+                throw new BadRequestException("Participant limit reached");
             }
-        }
 
-        // Optional: check if user has already attempted
-        boolean alreadyAttempted = quiz.getAttempts() != null &&
-                quiz.getAttempts().stream().anyMatch(a -> a.getUser().getId().equals(user.getId()));
-        if (alreadyAttempted) {
-            throw new BadRequestException("User has already attempted this quiz");
-        }
-
-        // Score calculation (optional)
-        int score = 0;
-        List<QuestionEntry> questions = quiz.getQuestions();
-        List<Integer> answers = req.selectedAnswers();
-
-        for (int i = 0; i < Math.min(questions.size(), answers.size()); i++) {
-            Integer correct = questions.get(i).getCorrectIndex();
-            if (correct != null && correct >= 0 && correct.equals(answers.get(i))) {
-                score++;
+            // Check if user is allowed
+            if (quiz.getAllowUsers() != null && !quiz.getAllowUsers().isEmpty()) {
+                boolean allowed = quiz.getAllowUsers().stream()
+                        .filter(Objects::nonNull)
+                        .anyMatch(u -> user.getId().equals(u.getId()));
+                if (!allowed) {
+                    throw new BadRequestException("User not allowed to attempt this quiz");
+                }
             }
+
+            // Check if user has already attempted
+            if (quiz.getAttempts() != null) {
+                boolean alreadyAttempted = quiz.getAttempts().stream()
+                        .filter(Objects::nonNull)
+                        .filter(a -> a.getUserId() != null)
+                        .anyMatch(a -> user.getId().equals(a.getUserId()));
+                if (alreadyAttempted) {
+                    throw new ConflictException("User has already attempted this quiz");
+                }
+            }
+
+            // Calculate score
+            int score = 0;
+            List<QuestionEntry> questions = quiz.getQuestions();
+            List<Integer> answers = req.selectedAnswers();
+
+            for (int i = 0; i < Math.min(questions.size(), answers.size()); i++) {
+                Integer correct = questions.get(i).getCorrectIndex();
+                if (correct != null && correct >= 0 && correct.equals(answers.get(i))) {
+                    score++;
+                }
+            }
+
+            // Create attempt
+            AttemptEntry attempt = new AttemptEntry();
+            attempt.setUserId(user.getId());
+            attempt.setQuizId(quiz.getId());
+            attempt.setSelectedAnswers(answers);
+            attempt.setScore(score);
+            attempt.setAttemptedAt(Instant.now().toString());
+
+            AttemptEntry saved = attemptRepository.save(attempt);
+
+            // Update quiz metadata
+            quiz.setAttemptCount(quiz.getAttemptCount() + 1);
+            quiz.setParticipantsCount(quiz.getParticipantsCount() + 1);
+
+            if (quiz.getAttempts() != null) {
+                quiz.getAttempts().add(saved);
+            }
+
+            if (quiz.getParticipants() != null) {
+                quiz.getParticipants().add(user);
+            }
+
+            quizRepository.save(quiz);
+
+            return new AttemptResponse(saved.getScore(), saved.getSelectedAnswers());
+
+        } catch (NotFoundException | BadRequestException | ConflictException e) {
+            throw e; // rethrow known exceptions directly
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to create attempt: " + e.getMessage());
         }
-
-        AttemptEntry attempt = new AttemptEntry();
-        attempt.setUser(user);
-        attempt.setQuiz(quiz);
-        attempt.setSelectedAnswers(answers);
-        attempt.setScore(score);
-        attempt.setAttemptedAt(Instant.now().toString());
-
-        AttemptEntry saved = attemptRepository.save(attempt);
-
-        // Update quiz
-        quiz.setAttemptCount(quiz.getAttemptCount() + 1);
-        quiz.setParticipantsCount(quiz.getParticipantsCount() + 1);
-        quiz.getAttempts().add(saved); // optional if stored in quiz
-        quiz.getParticipants().add(user);
-        quizRepository.save(quiz);
-
-        return new AttemptResponse(
-                saved.getScore(),
-                saved.getSelectedAnswers()
-        );
     }
 
     public List<QuizEntry> getQuizzesByEvent(String eventId) {
@@ -145,6 +167,13 @@ public class QuizService {
     public QuizEntry getQuizById(String quizId) {
         return quizRepository.findById(quizId)
                 .orElseThrow(() -> new NotFoundException("Quiz not found"));
+    }
+
+    public QuizResponse getQuizDetailsById(String quizId) {
+        QuizEntry quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
+
+        return QuizMapper.toResponse(quiz);
     }
 
 }
