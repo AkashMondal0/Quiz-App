@@ -1,12 +1,15 @@
-"use client";
+import { DataTable } from "@/components/data-table"
+import data from "@/app/(index)/data.json"
 export default function Page() {
-
-
-    return (
-        <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <h1 className="text-2xl font-bold">
-                Inbox Page
-            </h1>
+  return (
+    <>
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <DataTable data={data} />
+            </div>
+          </div>
         </div>
-    )
+    </>
+  )
 }

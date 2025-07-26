@@ -1,12 +1,12 @@
 package com.skysolo.quiz.controller;
 
+import com.skysolo.quiz.entry.AttemptEntry;
 import com.skysolo.quiz.entry.QuestionEntry;
 import com.skysolo.quiz.entry.QuizEntry;
 import com.skysolo.quiz.payload.attempt.AttemptResponse;
 import com.skysolo.quiz.payload.attempt.CreateAttemptRequest;
 import com.skysolo.quiz.payload.quiz.CreateQuizRequest;
 import com.skysolo.quiz.payload.quiz.GenerateQuizRequest;
-import com.skysolo.quiz.payload.quiz.QuizMapper;
 import com.skysolo.quiz.payload.quiz.QuizResponse;
 import com.skysolo.quiz.service.GeminiService;
 import com.skysolo.quiz.service.QuizService;
@@ -48,6 +48,12 @@ public class QuizController {
         return ResponseEntity.ok(quizzes);
     }
 
+    @GetMapping("/list")
+    public ResponseEntity<List<QuizEntry>> getQuizzesByEvent() {
+        List<QuizEntry> quizzes = quizService.getQuizzesByUserId();
+        return ResponseEntity.ok(quizzes);
+    }
+
     @GetMapping("/{quizId}")
     public ResponseEntity<QuizEntry> getQuizById(@PathVariable String quizId) {
         QuizEntry quiz = quizService.getQuizById(quizId);
@@ -61,8 +67,8 @@ public class QuizController {
     }
 
     @GetMapping("/{quizId}/attempt")
-    public ResponseEntity<QuizResponse> attemptQuiz(@PathVariable String quizId) {
-        QuizResponse attempt = quizService.attemptQuiz(quizId);
+    public ResponseEntity<QuizResponse> getEligibleForAttemptQuiz(@PathVariable String quizId) {
+        QuizResponse attempt = quizService.getEligibleForAttemptQuiz(quizId);
         return ResponseEntity.ok(attempt);
     }
 
@@ -70,6 +76,12 @@ public class QuizController {
     public ResponseEntity<List<QuestionEntry>> generateQuiz(@RequestBody @Valid GenerateQuizRequest request) {
         List<QuestionEntry> attempts = geminiService.generateQuizQuestions(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(attempts);
+    }
+
+    @GetMapping("/result/{quizId}")
+    public ResponseEntity<AttemptEntry> getQuizResult(@PathVariable String quizId) {
+        AttemptEntry quizResult = quizService.getQuizResult(quizId);
+        return ResponseEntity.ok(quizResult);
     }
 
 }

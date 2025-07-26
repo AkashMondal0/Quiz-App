@@ -36,6 +36,8 @@ public record QuizResponse(
             String id,
             String userId,
             int score,
-            String submittedAt
+            String submittedAt,
+             List<Integer> selectedAnswers,
+            List<Integer> correctAnswers
     ) {}
 }

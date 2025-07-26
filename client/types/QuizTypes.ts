@@ -1,4 +1,5 @@
 export interface User {
+    id?: string
     username: string
     email: string
     image: string
@@ -68,6 +69,8 @@ export interface Attempt {
     userId: string
     user: User
     answers: Answer[]
+    selectedAnswers: number[]
+    correctAnswers: number[]
     score: number
     createdAt: string
     updatedAt: string

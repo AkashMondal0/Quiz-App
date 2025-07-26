@@ -11,6 +11,31 @@ import java.util.List;
 
 public class QuizMapper {
 
+        public static QuizEntry toQuizWithOutEvent (CreateQuizRequest req, UserEntry creator) {
+                List<QuestionEntry> questions = req.questions() != null
+                        ? req.questions().stream()
+                        .map(q -> new QuestionEntry(q.text(), q.options(), q.correctIndex()))
+                        .toList()
+                        : List.of();
+
+                QuizEntry quiz = new QuizEntry();
+
+                quiz.setTitle(req.title());
+                quiz.setDescription(req.description());
+                quiz.setDurationEnabled(req.isDurationEnabled());
+                quiz.setDurationLimitSeconds(req.durationLimitSeconds());
+                quiz.setSendEmailFeatureEnabled(req.sendEmailFeatureEnabled());
+                quiz.setParticipantLimitEnabled(req.participantLimitEnabled());
+                quiz.setParticipantLimit(req.participantLimit());
+                quiz.setPublic(req.isPublic());
+                quiz.setQuestions(questions);
+                quiz.setUser(creator);
+                quiz.setCreatedAt(Instant.now().toString());
+                quiz.setAttemptCount(0);
+                quiz.setParticipantsCount(0);
+
+                return quiz;
+        }
         public static QuizEntry toQuiz(CreateQuizRequest req, EventEntry event, UserEntry creator) {
                 List<QuestionEntry> questions = req.questions() != null
                         ? req.questions().stream()
@@ -62,7 +87,10 @@ public class QuizMapper {
                                 a.getId(),
                                 a.getUser() != null ? a.getUser().getId() : null,
                                 a.getScore(),
-                                a.getAttemptedAt()
+                                a.getAttemptedAt(),
+                                a.getSelectedAnswers(),
+                                a.getCorrectAnswers()
+
                         ))
                         .toList();
 

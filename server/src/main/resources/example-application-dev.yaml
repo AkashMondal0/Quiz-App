@@ -3,16 +3,16 @@ spring:
     default-property-inclusion: non_null
   data:
     redis:
-      url: redis://default:1RszQx1XyC4ShhX27C1cz4mHpDDqf0v4@redis-10599.c292.ap-southeast-1-1.ec2.redns.redis-cloud.com:10599
+      url: REPLACE_ME
       database: 0
     mongodb:
-      uri: mongodb+srv://springboot:Lf10YKyQcNv72Fjv@akashmondal0.u1f8e.mongodb.net/springboot
+      uri: REPLACE_ME
       auto-index-creation: true
   mail:
     host: smtp.gmail.com
     port: 587
-    username: mondal2003sky@gmail.com
-    password: cyrn xktr llgm iifv
+    username: REPLACE_ME
+    password: REPLACE_ME
     properties:
       mail:
         smtp:
@@ -20,5 +20,5 @@ spring:
           starttls:
             enable: true
 genai:
-  apiKey: AIzaSyC13TdWpj6F8POlG9zB8SuQVRTvco0trS8
+  apiKey: REPLACE_ME
   modelUrl: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=

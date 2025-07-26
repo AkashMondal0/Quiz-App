@@ -22,6 +22,8 @@ public class AttemptEntry {
 
     private List<Integer> selectedAnswers;
 
+    private List<Integer> correctAnswers = List.of();
+
     private String attemptedAt;
 
     private int score; // optional

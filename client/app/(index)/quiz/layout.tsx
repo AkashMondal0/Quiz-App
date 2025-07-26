@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 // import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-    title: "Register Page",
-    keywords: ["register", "authentication", "nextjs"],
-    description: "Register page for the application",
+    title: "Quiz Page",
+    keywords: ["quiz", "assessment", "nextjs"],
+    description: "Quiz page for the application",
 };
 
 export default async function RootLayout({

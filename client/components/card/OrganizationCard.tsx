@@ -3,10 +3,9 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { CalendarIcon } from 'lucide-react';
-import {Organizations} from "@/types/QuizTypes";
 
 const OrganizationCards = ({organizations}:{
-    organizations:Organizations[]
+    organizations: any[]
 }) => {
     const route = useRouter();
 

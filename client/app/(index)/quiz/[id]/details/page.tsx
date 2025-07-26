@@ -9,7 +9,6 @@ import {
     CardHeader,
     CardTitle,
     CardContent,
-    CardDescription,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -28,12 +27,14 @@ import {
     Tooltip,
     ResponsiveContainer,
     Cell,
+    Legend,
 } from "recharts"
 import { eventSchema, EventFormSchema } from "@/types/schemas/quizSchema"
 import Counter from "@/components/quiz/Counter"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useAxios } from "@/hooks/useAxios"
 import { Quiz } from "@/types/QuizTypes"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 function deepEqual(a: any, b: any) {
     return JSON.stringify(a) === JSON.stringify(b)
@@ -48,26 +49,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
     const [participantLimit, setParticipantLimit] = useState(100)
     const [durationLimitSeconds, setDurationLimitSeconds] = useState(900)
-    const dummyStats = data?.questions.map((q) => ({
-        question: q.text,
-        options: q?.options?.map((opt, i) => ({
-            name: opt,
-            count: Math.floor(Math.random() * 5),
-            isCorrect: i === q.correctIndex,
-        })),
-    }))
+
     const eventForm = useForm<EventFormSchema>({
         resolver: zodResolver(eventSchema),
         defaultValues: {
             eventId: id,
-            title: "",
-            description: "",
-            isDurationEnabled: true,
-            durationLimitSeconds,
-            sendEmailFeatureEnabled: false,
-            participantLimitEnabled: true,
-            participantLimit,
-            isPublic: true,
+            title: data?.title || "",
+            description: data?.description || "",
+            isDurationEnabled: data?.isDurationEnabled || false,
+            sendEmailFeatureEnabled: data?.sendEmailFeatureEnabled || false,
+            participantLimitEnabled: data?.participantLimitEnabled || false,
+            participantLimit: data?.participantLimit || participantLimit,
         },
     })
 
@@ -104,6 +96,23 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     const hasMounted = useRef(false)
     const lastSaved = useRef(formSnapshot)
 
+    const attemptStats = data?.questions.map((question, qIdx) => {
+        const counts = question?.options?.map((_, optIdx) =>
+            data?.attempts?.reduce((acc, attempt) => {
+                if(!attempt?.selectedAnswers) return acc
+                return acc + (attempt?.selectedAnswers[qIdx] === optIdx ? 1 : 0)
+            }, 0)
+        )
+        return {
+            question: question.text,
+            options: question?.options?.map((opt, i) => ({
+                name: opt,
+                count: counts ? counts[i] : 0,
+                isCorrect: i === question.correctIndex,
+            })),
+        }
+    })
+
     useEffect(() => {
         if (!hasMounted.current) {
             hasMounted.current = true
@@ -131,6 +140,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
     if (loading) return <div className="p-4">Loading...</div>
 
+    const highestAttempts = data?.attempts && data?.attempts.reduce((acc, attempt) => {
+        if (!acc[attempt.userId] || attempt.score > acc[attempt.userId].score) {
+            acc[attempt.userId] = attempt
+        }
+        return acc
+    }, {} as Record<string, typeof data.attempts[number]>)
+
+    const sortedAttempts = highestAttempts
+        ? Object.values(highestAttempts).sort((a, b) => b.score - a.score)
+        : []
+
     return (
         <div className="p-4">
             <h1 className="text-2xl font-bold text-center mb-6">Quiz Details</h1>
@@ -143,160 +163,174 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                         <TabsTrigger value="settings">Settings</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="questions">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-center text-xl">Quiz Questions & Stats</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-8">
-                                {dummyStats?.map((questionStat, index) => (
-                                    <div key={index} className="space-y-4">
-                                        <h2 className="text-lg font-semibold">
-                                            Q{index + 1}: {questionStat.question}
-                                        </h2>
+                    {questions()}
 
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <BarChart
-                                                layout="vertical"
-                                                data={questionStat.options}
-                                                margin={{ top: 10, right: 30, left: 100, bottom: 5 }}
-                                            >
-                                                <XAxis type="number" allowDecimals={false} />
-                                                <YAxis
-                                                    type="category"
-                                                    dataKey="name"
-                                                    width={200}
-                                                    tick={{ fontSize: 14 }}
-                                                />
-                                                <Tooltip
-                                                    formatter={(value: any) => [`${value} participants`, "Selected by"]}
-                                                />
-                                                <Bar
-                                                    dataKey="count"
-                                                    label={{ position: "right", fontSize: 12 }}
-                                                    isAnimationActive={false}
-                                                >
-                                                    {questionStat.options.map((entry, i) => (
-                                                        <Cell
-                                                            key={`cell-${i}`}
-                                                            fill={entry.isCorrect ? "#4ade80" : "#60a5fa"} // green if correct, blue otherwise
-                                                        />
-                                                    ))}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
+                    {Participants()}
 
-                                        <ul className="text-sm text-muted-foreground pl-2">
-                                            {questionStat.options.map((opt, i) => (
-                                                <li key={i}>
-                                                    {opt.name} –{" "}
-                                                    <span className={opt.isCorrect ? "text-green-600 font-semibold" : ""}>
-                                                        {opt.isCorrect ? "Correct Answer" : "Wrong"}
-                                                    </span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                    {Leaderboard()}
 
-
-                    <TabsContent value="participants">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-center text-xl">Participants</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {data?.participants.map((p, i) => (
-                                    <div key={i} className="border-b pb-2">
-                                        <p><strong>{p.name}</strong> ({p.email})</p>
-                                        <p className="text-sm text-muted-foreground">{p.url}</p>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="leaderboard">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-center text-xl">Leaderboard</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {data?.attempts.map((a, i) => (
-                                    <div key={i} className="border-b pb-2">
-                                        <p><strong>User ID:</strong> {a.userId}</p>
-                                        <p><strong>Score:</strong> {a.score}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            Submitted At: {new Date(a.submittedAt).toLocaleString()}
-                                        </p>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="settings">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-center text-xl">Event Settings</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium">Event ID</label>
-                                        <Input {...register("eventId")} disabled />
-                                        {errors.eventId && <p className="text-sm text-red-500">{errors.eventId.message}</p>}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium">Event Title</label>
-                                        <Input {...register("title")} />
-                                        {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium">Event Description</label>
-                                        <Textarea {...register("description")} rows={3} />
-                                        {errors.description && <p className="text-sm text-red-500">{errors.description.message}</p>}
-                                    </div>
-
-                                    <FormSwitch label="Enable Duration Limit" name="isDurationEnabled" control={control} />
-
-                                    <Counter
-                                        label="Duration (seconds)"
-                                        value={durationLimitSeconds}
-                                        min={60}
-                                        max={7200}
-                                        step={60}
-                                        increment={() => updateCounter(setDurationLimitSeconds, durationLimitSeconds, 60, 60, 7200, "durationLimitSeconds")}
-                                        decrement={() => updateCounter(setDurationLimitSeconds, durationLimitSeconds, -60, 60, 7200, "durationLimitSeconds")}
-                                    />
-
-                                    <FormSwitch label="Enable Email Feature" name="sendEmailFeatureEnabled" control={control} />
-                                    <FormSwitch label="Enable Participant Limit" name="participantLimitEnabled" control={control} />
-
-                                    <Counter
-                                        label="Participant Limit"
-                                        value={participantLimit}
-                                        min={1}
-                                        max={1000}
-                                        step={10}
-                                        increment={() => updateCounter(setParticipantLimit, participantLimit, 10, 1, 1000, "participantLimit")}
-                                        decrement={() => updateCounter(setParticipantLimit, participantLimit, -10, 1, 1000, "participantLimit")}
-                                    />
-
-                                    <FormSwitch label="Public Event" name="isPublic" control={control} />
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                    {Settings()}
                 </Tabs>
             </div>
         </div>
     )
+
+    function questions() {
+        return <TabsContent value="questions">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-xl text-center">Answer Distribution</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-10">
+                    {attemptStats?.map((questionStat, index) => (
+                        <div key={index} className="space-y-4">
+                            <h2 className="font-semibold text-md">Q{index + 1}: {questionStat.question}</h2>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart
+                                    layout="vertical"
+                                    data={questionStat.options}
+                                    margin={{ top: 10, right: 30, left: 120, bottom: 5 }}
+                                >
+                                    <XAxis type="number" allowDecimals={false} />
+                                    <YAxis
+                                        dataKey="name"
+                                        type="category"
+                                        width={250}
+                                        tick={{ fontSize: 14 }}
+                                    />
+                                    <Tooltip formatter={(value: any) => [`${value} selections`, "Selected"]} />
+                                    <Legend />
+                                    <Bar dataKey="count">
+                                        {questionStat?.options?.map((entry, i) => (
+                                            <Cell
+                                                key={`cell-${i}`}
+                                                fill={entry.isCorrect ? "#22c55e" : "#3b82f6"}
+                                            />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                            <ul className="text-sm text-muted-foreground pl-2">
+                                {questionStat?.options?.map((opt, i) => (
+                                    <li key={i}>
+                                        {opt.name} – {opt.count} selected – {opt.isCorrect ? (
+                                            <span className="text-green-600 font-semibold">Correct</span>
+                                        ) : (
+                                            <span className="text-red-500">Wrong</span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        </TabsContent>
+    }
+
+    function Participants() {
+        return <TabsContent value="participants">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-center text-xl">Participants</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {data?.participants?.map((p, i) => (
+                        <div key={i} className="border-b pb-2">
+                            <p><strong>{p.name}</strong> ({p.email})</p>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        </TabsContent>
+    }
+
+    function Leaderboard() {
+        return <TabsContent value="leaderboard">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-center text-xl">Leaderboard</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {sortedAttempts.map((a, i) => {
+                        const user = data?.participants?.find(p => p.id === a.userId)
+                        return (
+                            <div key={i} className="flex items-center border-b pb-2 space-x-4">
+                                <Avatar className="w-10 h-10">
+                                    <AvatarFallback>
+                                        {(user?.name?.slice(0, 2).toUpperCase()) || "??"}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                    <p className="font-semibold text-left">{user?.name || "Unknown User"} ({user?.username || "No Username"})</p>
+                                    <p className="text-sm text-muted-foreground text-left">{user?.email || "No Email"}</p>
+                                    <p className="text-sm text-muted-foreground text-left">
+                                        Score: {a.score} / {data?.questions.length}
+                                    </p>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </CardContent>
+            </Card>
+        </TabsContent>
+    }
+
+    function Settings() {
+        return <TabsContent value="settings">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-center text-xl">Event Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <form className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium">Event ID</label>
+                            <Input {...register("eventId")} disabled />
+                            {errors.eventId && <p className="text-sm text-red-500">{errors.eventId.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium">Event Title</label>
+                            <Input {...register("title")} />
+                            {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium">Event Description</label>
+                            <Textarea {...register("description")} rows={3} />
+                            {errors.description && <p className="text-sm text-red-500">{errors.description.message}</p>}
+                        </div>
+
+                        <FormSwitch label="Enable Duration Limit" name="isDurationEnabled" control={control} />
+
+                        <Counter
+                            label="Duration (seconds)"
+                            value={durationLimitSeconds}
+                            min={60}
+                            max={7200}
+                            step={60}
+                            increment={() => updateCounter(setDurationLimitSeconds, durationLimitSeconds, 60, 60, 7200, "durationLimitSeconds")}
+                            decrement={() => updateCounter(setDurationLimitSeconds, durationLimitSeconds, -60, 60, 7200, "durationLimitSeconds")} />
+
+                        <FormSwitch label="Enable Email Feature" name="sendEmailFeatureEnabled" control={control} />
+                        <FormSwitch label="Enable Participant Limit" name="participantLimitEnabled" control={control} />
+
+                        <Counter
+                            label="Participant Limit"
+                            value={participantLimit}
+                            min={1}
+                            max={1000}
+                            step={10}
+                            increment={() => updateCounter(setParticipantLimit, participantLimit, 10, 1, 1000, "participantLimit")}
+                            decrement={() => updateCounter(setParticipantLimit, participantLimit, -10, 1, 1000, "participantLimit")} />
+
+                        <FormSwitch label="Public Event" name="isPublic" control={control} />
+                    </form>
+                </CardContent>
+            </Card>
+        </TabsContent>
+    }
 }
 
 function FormSwitch({ label, name, control }: { label: string, name: keyof EventFormSchema, control: any }) {

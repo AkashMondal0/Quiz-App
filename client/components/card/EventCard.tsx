@@ -20,10 +20,13 @@ const EventCard = ({ events }: {
         <>
             {/* Organization Cards */}
             <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-0 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-0 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-                {events.map((event) => (
-                    <Card className="@container/card shadow-md border rounded-2xl cursor-pointer duration-300"
+                {events.map((event) => {
+                    if (!event.user || !event) {
+                        return <></>
+                    }
+                    return (<Card className="@container/card shadow-md border rounded-2xl cursor-pointer duration-300"
                         key={event.id} onClick={() => {
-                            handleCardClick(event.id);
+                            handleCardClick(event?.id as string);
                         }}>
                         <CardHeader className="space-y-1">
                             <div className="flex justify-between items-center">
@@ -53,8 +56,8 @@ const EventCard = ({ events }: {
                                 <span>{new Date(org.createdAt).toLocaleDateString()}</span>
                             </div> */}
                         </CardFooter>
-                    </Card>
-                ))}
+                    </Card>)
+                })}
             </div>
         </>
     );

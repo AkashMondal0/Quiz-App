@@ -2,9 +2,9 @@
 import EventCard from "@/components/card/EventCard";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
-import {Event, Organizations} from "@/types/QuizTypes";
+import {Event} from "@/types/QuizTypes";
 
-const organizationData:Organizations = {
+const organizationData = {
     id: "686d6e12ba6a2d7fbc34dc6d",
     name: "Code Academy",
     tag: "Education",

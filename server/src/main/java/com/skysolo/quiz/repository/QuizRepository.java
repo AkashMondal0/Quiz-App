@@ -11,5 +11,7 @@ import java.util.List;
 public interface QuizRepository extends MongoRepository<QuizEntry, String> {
     List<EventEntry> findByUserId(String userId);
     List<QuizEntry> findAllByEventId(String eventId);
+    QuizEntry findByIdAndUserId(String quizId, String userId);
+    List<QuizEntry> findAllByUserId(String userId);
 }
 

@@ -52,11 +52,18 @@ public class QuizService {
     public QuizEntry createQuiz(CreateQuizRequest req) {
         try {
             String userId = getUserId();
-            EventEntry event = eventRepository.findById(req.eventId())
-                    .orElseThrow(() -> new NotFoundException("Event not found"));
 
             UserEntry creator = userRepository.findById(userId)
                     .orElseThrow(() -> new NotFoundException("User not found"));
+
+            if(req.eventId().equals("EID") || req.eventId().isEmpty()) {
+                // create quiz without event
+                QuizEntry quiz = QuizMapper.toQuizWithOutEvent(req, creator);
+                quiz = quizRepository.save(quiz);
+                return quiz;
+            }
+            EventEntry event = eventRepository.findById(req.eventId())
+                    .orElseThrow(() -> new NotFoundException("Event not found"));
 
             QuizEntry quiz = QuizMapper.toQuiz(req, event, creator);
 
@@ -126,6 +133,9 @@ public class QuizService {
             attempt.setUserId(user.getId());
             attempt.setQuizId(quiz.getId());
             attempt.setSelectedAnswers(answers);
+            attempt.setCorrectAnswers(quiz.getQuestions().stream()
+                    .map(QuestionEntry::getCorrectIndex)
+                    .toList());
             attempt.setScore(score);
             attempt.setAttemptedAt(Instant.now().toString());
 
@@ -178,45 +188,60 @@ public class QuizService {
     }
 
     @Transactional
-    public QuizResponse attemptQuiz(String quizId) {
+    public QuizResponse getEligibleForAttemptQuiz(String quizId) {
+       try {
+           String userId = getUserId();
+
+           QuizEntry quiz = quizRepository.findById(quizId)
+                   .orElseThrow(() -> new RuntimeException("Quiz not found"));
+
+           boolean isPrivate = !quiz.isPublic();
+
+           if (isPrivate && (quiz.getAllowUsers() == null || quiz.getAllowUsers().stream()
+                   .noneMatch(user -> user.getId().equals(userId)))) {
+               throw new ForbiddenException("You are not allowed to attempt this private quiz.");
+           }
+
+           // ❌ If user already submitted (in participants)
+           boolean alreadySubmitted = quiz.getParticipants().stream()
+                   .anyMatch(user -> user.getId().equals(userId));
+           if (alreadySubmitted) {
+               throw new ForbiddenException("You have already submitted this quiz.");
+           }
+
+           // ✅ Allow only if user has not attempted before
+           boolean hasAttempted = quiz.getAttempts().stream()
+                   .anyMatch(a -> a.getUserId().equals(userId));
+
+           if (hasAttempted) {
+                throw new ForbiddenException("You have already attempted this quiz.");
+           }
+
+           return QuizMapper.toAttendResponse(quiz);
+       } catch (NotFoundException e) {
+           throw new NotFoundException("Quiz not found: " + e.getMessage());
+       } catch (ForbiddenException e) {
+           throw new ForbiddenException("Access denied: " + e.getMessage());
+       } catch (Exception e) {
+           throw new BadRequestException("Failed to attempt quiz: " + e.getMessage());
+       }
+    }
+
+    public AttemptEntry getQuizResult(String quizId) {
         String userId = getUserId();
+        return attemptRepository.findByUserIdAndQuizId(userId, quizId)
+                .orElseThrow(() -> new NotFoundException("Quiz attempt not found for user"));
+    }
 
-        UserEntry currentUser = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public  List<QuizEntry> getQuizzesByUserId () {
+        String userId = getUserId();
+        UserEntry user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
-        QuizEntry quiz = quizRepository.findById(quizId)
-                .orElseThrow(() -> new RuntimeException("Quiz not found"));
-
-        boolean isPrivate = !quiz.isPublic();
-
-        if (isPrivate && (quiz.getAllowUsers() == null || quiz.getAllowUsers().stream()
-                .noneMatch(user -> user.getId().equals(userId)))) {
-            throw new ForbiddenException("You are not allowed to attempt this private quiz.");
+        List<QuizEntry> quizzes = quizRepository.findAllByUserId(user.getId());
+        if (quizzes.isEmpty()) {
+            throw new NotFoundException("No quizzes found for this user");
         }
-
-        // ❌ If user already submitted (in participants)
-        boolean alreadySubmitted = quiz.getParticipants().stream()
-                .anyMatch(user -> user.getId().equals(userId));
-        if (alreadySubmitted) {
-            throw new ForbiddenException("You have already submitted this quiz.");
-        }
-
-        // ✅ Allow only if user has not attempted before
-        boolean hasAttempted = quiz.getAttempts().stream()
-                .anyMatch(a -> a.getUserId().equals(userId));
-
-        if (!hasAttempted) {
-            AttemptEntry attempt = AttemptEntry.builder()
-                    .userId(userId)
-                    .quizId(quizId)
-                    .attemptedAt(Instant.now().toString())
-                    .build();
-
-            quiz.getAttempts().add(attempt);
-            quiz.setAttemptCount(quiz.getAttemptCount() + 1);
-            quizRepository.save(quiz);
-        }
-
-        return QuizMapper.toAttendResponse(quiz);
+        return quizzes;
     }
 }
